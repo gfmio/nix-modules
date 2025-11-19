@@ -9,15 +9,16 @@
 
     # Feature libraries (use local paths for development)
     nixos-features = {
-      url = "path:../nixos-features";
+      url = "path:/Users/gfmio/projects/github/gfmio/nixos-features";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # nix-darwin-features (use local path for development)
-    nix-darwin-features = {
-      url = "path:../nix-darwin-features";
-      inputs.nixpkgs.follows = "nixpkgs-darwin";
-    };
+    # nix-darwin-features (commented out until published)
+    # TODO: Uncomment when nix-darwin-features is available
+    # nix-darwin-features = {
+    #   url = "path:../nix-darwin-features";
+    #   inputs.nixpkgs.follows = "nixpkgs-darwin";
+    # };
 
     # Core infrastructure
     flake-parts.url = "github:hercules-ci/flake-parts";
