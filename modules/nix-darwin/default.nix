@@ -1,9 +1,8 @@
-/*
-  nix-darwin modules
- */
-
-{ self, lib, flake-parts-lib, ... }:
+{ inputs }:
 
 {
-  # This file aggregates all nix-darwin modules.
+  imports = [
+    # Add nix-darwin modules here
+    ./my-darwin-module
+  ];
 }

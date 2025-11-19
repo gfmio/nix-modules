@@ -1,8 +1,6 @@
-/*
-  User / Home configurations & presets
- */
-{ self, lib, flake-parts-lib, ... }:
+{ inputs, ... }:
 
 {
-  # This file aggregates all user and home configurations and presets.
+  # This file is imported by flake-parts
+  # Home configurations are defined in flake.nix
 }

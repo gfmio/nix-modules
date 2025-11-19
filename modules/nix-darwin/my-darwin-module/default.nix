@@ -1,9 +1,22 @@
-/*
-  my-darwin-module nix-darwin module
- */
+{ config, lib, pkgs, ... }:
 
-{ self, lib, flake-parts-lib, ... }:
+with lib;
 
+let
+  cfg = config.my.darwin-module;
+in
 {
-  # Add declarations
+  options.my.darwin-module = {
+    enable = mkEnableOption "my Darwin module";
+
+    package = mkOption {
+      type = types.package;
+      default = pkgs.hello;
+      description = "Package to use";
+    };
+  };
+
+  config = mkIf cfg.enable {
+    environment.systemPackages = [ cfg.package ];
+  };
 }

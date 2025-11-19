@@ -1,9 +1,9 @@
-/*
-  Modules
- */
-
-{ self, lib, flake-parts-lib, ... }:
+{ inputs, ... }:
 
 {
-  # This file aggregates all modules.
+  flake = {
+    nixosModules.default = import ./nixos { inherit inputs; };
+    darwinModules.default = import ./nix-darwin { inherit inputs; };
+    homeModules.default = import ./home-manager { inherit inputs; };
+  };
 }

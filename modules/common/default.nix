@@ -1,10 +1,7 @@
-/*
-  Common / cross-platform / platform-independent modules
- */
-
-{ self, lib, flake-parts-lib, ... }:
+{ inputs }:
 
 {
-  # This file aggregates all common / cross-platform / platform-independent
-  # modules.
+  imports = [
+    # Add common modules here
+  ];
 }

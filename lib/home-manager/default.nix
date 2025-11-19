@@ -1,10 +1,5 @@
-/*
-  home-manager library functions
- */
-
-{ self, lib, flake-parts-lib, ... }:
+{ lib, inputs }:
 
 {
-  # This file aggregates all library functions that are specifically for
-  # working with home-manager.
+  # home-manager-specific library functions
 }

@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: Nix Flake Check
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Check flake
+        run: nix flake check --all-systems --show-trace
+
+      - name: Check formatting
+        run: nix fmt -- --check .
+
+  build:
+    name: Build Configurations
+    runs-on: ubuntu-latest
+    needs: check
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Build NixOS configuration
+        run: |
+          nix build .#nixosConfigurations.my-nixos-box.config.system.build.toplevel
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: check
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Run unit tests
+        run: nix build .#checks.x86_64-linux.eval-test
+
+      - name: Run integration tests
+        run: nix build .#checks.x86_64-linux.nixos-integration

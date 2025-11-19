@@ -1,10 +1,5 @@
-/*
-  Host configurations for nix-darwin machines
- */
-
-{ self, lib, flake-parts-lib, ... }:
+{ inputs }:
 
 {
-  # This file can be used to define machine-level modules and options
-  # that are shared across all nix-darwin machines
+  # Shared nix-darwin configuration
 }

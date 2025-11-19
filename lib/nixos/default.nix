@@ -1,10 +1,5 @@
-/*
-  NixOS library functions
- */
-
-{ self, lib, flake-parts-lib, ... }:
+{ lib, inputs }:
 
 {
-  # This file aggregates all library functions that are specifically for
-  # working with NixOS.
+  # NixOS-specific library functions
 }

@@ -1,9 +1,7 @@
-/*
-  nix-darwin home-manager modules
- */
-
-{ self, lib, flake-parts-lib, ... }:
+{ inputs }:
 
 {
-  # This file aggregates all home-manager modules that are only available / applicable in nix-darwin.
+  imports = [
+    # Add Darwin-specific home-manager modules here
+  ];
 }

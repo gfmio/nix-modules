@@ -1,10 +1,5 @@
-/*
-  Host configurations for NixOS machines
- */
-
-{ self, lib, flake-parts-lib, ... }:
+{ inputs }:
 
 {
-  # This file can be used to define machine-level modules and options
-  # that are shared across all NixOS machines
+  # Shared NixOS configuration
 }

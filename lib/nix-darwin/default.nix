@@ -1,10 +1,5 @@
-/*
-  nix-darwin library functions
- */
-
-{ self, lib, flake-parts-lib, ... }:
+{ lib, inputs }:
 
 {
-  # This file aggregates all library functions that are specifically for
-  # working with nix-darwin.
+  # nix-darwin-specific library functions
 }

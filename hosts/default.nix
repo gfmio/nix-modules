@@ -1,10 +1,6 @@
-/*
-  Host configurations for nix-darwin and NixOS machines
- */
-
-{ self, lib, flake-parts-lib, ... }:
+{ inputs, ... }:
 
 {
-  # This file can be used to define machine-level modules and options
-  # that are shared across all nix-darwin and NixOS machines
+  # This file is imported by flake-parts
+  # Host configurations are defined in flake.nix
 }

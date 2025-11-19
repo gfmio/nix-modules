@@ -1,8 +1,80 @@
-/*
-  Default devshell
- */
-{ self, lib, flake-parts-lib, ... }:
+{ inputs, ... }:
 
 {
-  # add declarations
+  perSystem = { config, pkgs, system, ... }: {
+    devShells.default = pkgs.mkShell {
+      name = "nix-modules-dev";
+
+      buildInputs = with pkgs; [
+        # Nix tools
+        nix
+        nixpkgs-fmt
+        alejandra
+        statix
+        deadnix
+
+        # Language servers
+        nil
+        nixd
+
+        # Documentation
+        nix-doc
+        manix
+
+        # Development tools
+        nix-tree
+        nix-diff
+        nix-output-monitor
+        nvd
+
+        # Flake tools
+        flake-checker
+
+        # Task runner
+        go-task
+
+        # Git and GitHub
+        git
+        gh
+
+        # Pre-commit
+        pre-commit
+
+        # Direnv
+        direnv
+        nix-direnv
+      ] ++ lib.optionals stdenv.isLinux [
+        nixos-rebuild
+      ] ++ lib.optionals stdenv.isDarwin [
+        darwin-rebuild
+      ];
+
+      shellHook = '
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "🔧 nix-modules Development Environment"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "Available commands:"
+        echo "  • nix flake check  - Run all tests"
+        echo "  • nix fmt          - Format code"
+        echo "  • task --list      - Show available tasks"
+        echo "  • pre-commit run --all-files"
+        echo ""
+
+        # Set up pre-commit hooks
+        if command -v pre-commit >/dev/null 2>&1; then
+          pre-commit install --install-hooks >/dev/null 2>&1 || true
+        fi
+
+        # Set up direnv
+        if command -v direnv >/dev/null 2>&1; then
+          eval "$(direnv hook bash 2>/dev/null || true)"
+          eval "$(direnv hook zsh 2>/dev/null || true)"
+        fi
+      ';
+
+      NIX_CONFIG = "experimental-features = nix-command flakes";
+      NIXPKGS_ALLOW_UNFREE = "1";
+    };
+  };
 }
