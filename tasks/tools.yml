@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for aggregating all tool-specific tasks
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+includes:
+  deadnix:
+    taskfile: tools/deadnix.yml
+    flatten: true
+  direnv:
+    taskfile: tools/direnv.yml
+    flatten: true
+  nix:
+    taskfile: tools/nix.yml
+    flatten: true
+  statix:
+    taskfile: tools/statix.yml
+    flatten: true
+  tart:
+    taskfile: tools/tart.yml
+    flatten: true
+
+tasks: {}

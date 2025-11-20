@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for all tart tasks
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+tasks:
+  tart:setup:check:
+    desc: Check if tart is available
+    platforms: [darwin]
+    cmds:
+      - |
+        if ! command -v tart &> /dev/null; then
+          echo "⚠️  tart not found. Install it with: brew install cirruslabs/cli/tart"
+          exit 1
+        fi

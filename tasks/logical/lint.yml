@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for all linting tasks
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+tasks:
+  lint:check:
+    desc: Check all files for linting errors
+    aliases:
+      - lint
+    cmds:
+      - task: nix:lint:check
+
+  lint:fix:
+    desc: Fix all auto-fixable linting errors in all files
+    aliases:
+      - fix
+    cmds:
+      - echo "No autofixing linters available."

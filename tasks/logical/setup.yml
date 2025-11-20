@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for all setup tasks
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+tasks:
+  setup:
+    desc: Set up development environment
+    cmds:
+      - echo "🔧 Setting up development environment..."
+      - task: nix:setup:check
+      - task: direnv:setup:check
+      - echo "  ℹ️  Run 'task dev' or 'nix develop' to enter the development shell"
+      - echo ""
+      - echo "✅ Setup complete!"

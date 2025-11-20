@@ -1,5 +1,5 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
 # Taskfile for nix-modules
-# Run `task --list` to see all available commands
 # Learn more: https://taskfile.dev
 
 version: '3'
@@ -8,414 +8,75 @@ vars:
   PROJECT_NAME: nix-modules
   NIX_SYSTEMS: x86_64-linux aarch64-linux x86_64-darwin aarch64-darwin
 
+includes:
+  logical:
+    taskfile: tasks/logical.yml
+    flatten: true
+  tools:
+    taskfile: tasks/tools.yml
+    flatten: true
+
 tasks:
+  # Default
+
   default:
-    desc: Show available tasks
+    desc: Default task (Show available tasks)
     cmds:
-      - task --list
+      - task --list-all
     silent: true
 
-  # Formatting tasks
-  fmt:
-    desc: Format all Nix files
-    cmds:
-      - echo "📝 Formatting Nix files..."
-      - nix fmt
-      - echo "✅ Formatting complete!"
-
-  fmt-check:
-    desc: Check code formatting without modifying files
-    cmds:
-      - echo "🔍 Checking code formatting..."
-      - nixpkgs-fmt --check .
-
-  # Linting tasks
-  lint:
-    desc: Lint Nix code with statix
-    cmds:
-      - echo "🔍 Linting Nix code with statix..."
-      - statix check .
-
-  deadcode:
-    desc: Find dead/unused Nix code
-    cmds:
-      - echo "🔍 Finding dead code..."
-      - deadnix .
-
-  lint-all:
-    desc: Run all linters
-    deps: [lint, deadcode]
-    cmds:
-      - echo "✅ All linting complete!"
-
-  # Testing tasks
-  test:
-    desc: Run all tests
-    cmds:
-      - echo "🧪 Running all tests..."
-      - nix flake check
-      - echo "✅ All tests passed!"
-
-  test-unit:
-    desc: Run unit tests
-    cmds:
-      - echo "🧪 Running unit tests..."
-      - nix build .#checks.x86_64-linux.eval-test -L
-      - echo "✅ Unit tests passed!"
-
-  test-integration:
-    desc: Run integration tests
-    cmds:
-      - echo "🧪 Running integration tests..."
-      - nix build .#checks.x86_64-linux.nixos-integration -L
-      - echo "✅ Integration tests passed!"
-
-  test-vm:
-    desc: Build all VM test configurations
-    cmds:
-      - echo "🧪 Building VM tests..."
-      - task: test-vm-desktop
-      - task: test-vm-server
-      - echo "✅ All VM tests built!"
-
-  test-vm-desktop:
-    desc: Build desktop VM test
-    platforms: [linux]
-    cmds:
-      - echo "🖥️  Building desktop VM test..."
-      - nix build .#nixosConfigurations.desktop-vm.config.system.build.vm -L
-
-  test-vm-server:
-    desc: Build server VM test
-    platforms: [linux]
-    cmds:
-      - echo "🖥️  Building server VM test..."
-      - nix build .#nixosConfigurations.server-vm.config.system.build.vm -L
-
-  test-formatting:
-    desc: Test code formatting
-    cmds:
-      - echo "🧪 Testing formatting..."
-      - nix build .#checks.x86_64-linux.formatting -L
-      - echo "✅ Formatting test passed!"
-
-  test-statix:
-    desc: Test with statix linter
-    cmds:
-      - echo "🧪 Testing with statix..."
-      - nix build .#checks.x86_64-linux.statix -L
-      - echo "✅ Statix test passed!"
-
-  test-deadnix:
-    desc: Test for dead code
-    cmds:
-      - echo "🧪 Testing for dead code..."
-      - nix build .#checks.x86_64-linux.deadnix -L
-      - echo "✅ Dead code test passed!"
-
-  test-eval:
-    desc: Test module evaluation
-    cmds:
-      - echo "🧪 Testing module evaluation..."
-      - nix build .#checks.x86_64-linux.nixos-modules-evaluate -L
-      - echo "✅ Module evaluation test passed!"
-
-  test-perf:
-    desc: Measure evaluation performance
-    cmds:
-      - echo "⚡ Measuring evaluation performance..."
-      - |
-        for config in desktop laptop server; do
-          echo "Testing $config configuration..."
-          START=$(date +%s%N)
-          nix eval .#nixosConfigurations.$config.config.system.build.toplevel.drvPath >/dev/null 2>&1
-          END=$(date +%s%N)
-          DURATION=$((($END - $START) / 1000000))
-          echo "  ⏱️  $config: ${DURATION}ms"
-          if [ $DURATION -gt 5000 ]; then
-            echo "  ⚠️  Warning: Evaluation took more than 5 seconds"
-          fi
-        done
-      - echo "✅ Performance test complete!"
-
-  test-all:
-    desc: Run all test types
-    deps: [test-formatting, test-statix, test-deadnix, test-eval, test-unit, test-integration]
-    cmds:
-      - echo "✅ All test types passed!"
+  # test-all:
+  #   desc: Run all test types
+  #   deps: [test-formatting, test-statix, test-deadnix, test-eval, test-unit, test-integration]
+  #   cmds:
+  #     - |
+  #       if [ "$(uname)" = "Darwin" ]; then
+  #         task test-darwin-unit
+  #         task test-darwin-integration
+  #       fi
+  #     - echo "✅ All test types passed!"
 
   # VM running tasks
-  vm-desktop:
-    desc: Build and run desktop VM
-    platforms: [linux]
-    cmds:
-      - echo "🖥️  Building desktop VM..."
-      - nix build .#nixosConfigurations.desktop-vm.config.system.build.vm -L
-      - echo "🚀 Starting desktop VM..."
-      - echo "ℹ️  Use Ctrl+Alt+2 for QEMU monitor, Ctrl+Alt+1 to return to VM"
-      - echo "ℹ️  Press Ctrl+C to stop the VM"
-      - ./result/bin/run-desktop-vm
 
-  vm-server:
-    desc: Build and run server VM
-    platforms: [linux]
-    cmds:
-      - echo "🖥️  Building server VM..."
-      - nix build .#nixosConfigurations.server-vm.config.system.build.vm -L
-      - echo "🚀 Starting server VM..."
-      - echo "ℹ️  SSH will be available on port 2222 - ssh -p 2222 testuser@localhost"
-      - 'QEMU_OPTS="-netdev user,id=net0,hostfwd=tcp::2222-:22" ./result/bin/run-server-vm'
+  # # Hardware testing guidance
+  # test-hardware-info:
+  #   desc: Show hardware testing information
+  #   cmds:
+  #     - echo "🔧 Hardware Testing Guide"
+  #     - echo ""
+  #     - echo "Before testing on real hardware - "
+  #     - echo "  1. Read tests/hardware/README.md for detailed procedures"
+  #     - echo "  2. Backup all important data"
+  #     - echo "  3. Have a recovery USB ready"
+  #     - echo "  4. Test in VM first if possible"
+  #     - echo ""
+  #     - echo "Hardware-specific test guides - "
+  #     - echo "  Intel GPU - tests/hardware/intel-gpu.md"
+  #     - echo "  NVIDIA GPU - tests/hardware/nvidia-gpu.md"
+  #     - echo "  Laptop - tests/hardware/laptop.md"
+  #     - echo ""
+  #     - echo "To create a test ISO - "
+  #     - echo "  nix build .#nixosConfigurations.test-hardware.config.system.build.isoImage"
+  #     - echo ""
+  #     - echo "Always test incrementally and document results!"
+  #   silent: true
 
-  vm-desktop-kvm:
-    desc: Run desktop VM with KVM acceleration
-    platforms: [linux]
-    cmds:
-      - echo "🖥️  Building desktop VM with KVM..."
-      - nix build .#nixosConfigurations.desktop-vm.config.system.build.vm -L
-      - echo "🚀 Starting desktop VM with KVM acceleration..."
-      - QEMU_OPTS="-enable-kvm -m 4096" ./result/bin/run-desktop-vm
-
-  vm-interactive:
-    desc: "Run VM with custom QEMU options (usage: task vm-interactive -- -m 4096)"
-    platforms: [linux]
-    cmds:
-      - echo "🖥️  Building VM..."
-      - nix build .#nixosConfigurations.desktop-vm.config.system.build.vm -L
-      - echo "🚀 Starting VM with custom options..."
-      - 'QEMU_OPTS="{{.CLI_ARGS}}" ./result/bin/run-desktop-vm'
-
-  # Build configurations
-  build-nixos:
-    desc: Build NixOS configuration
-    cmds:
-      - echo "🏗️  Building NixOS configuration..."
-      - nix build .#nixosConfigurations.my-nixos-box.config.system.build.toplevel -L
-
-  build-darwin:
-    desc: Build nix-darwin configuration
-    platforms: [darwin]
-    cmds:
-      - echo "🏗️  Building darwin configuration..."
-      - nix build .#darwinConfigurations.my-mac.config.system.build.toplevel -L
-
-  build-all:
-    desc: Build all configurations
-    cmds:
-      - echo "🏗️  Building all configurations..."
-      - task: build-nixos
-      - |
-        if [ "$(uname)" = "Darwin" ]; then
-          task build-darwin
-        fi
-      - echo "✅ All configurations built!"
-
-  # Flake management
-  update:
-    desc: Update flake inputs
-    cmds:
-      - echo "⬆️  Updating flake inputs..."
-      - nix flake update
-      - echo "✅ Inputs updated!"
-
-  update-input:
-    desc: "Update a specific input (usage: task update-input -- nixpkgs)"
-    cmds:
-      - echo "⬆️  Updating {{.CLI_ARGS}}..."
-      - nix flake lock --update-input {{.CLI_ARGS}}
-
-  check-updates:
-    desc: Check for updates to flake inputs
-    cmds:
-      - echo "🔍 Checking for updates..."
-      - nix flake lock --recreate-lock-file --commit-lock-file 2>&1 | grep -E "(Updated|warning)" || echo "✅ All inputs are up to date"
-
-  # Information tasks
-  info:
-    desc: Show flake information
-    cmds:
-      - echo "ℹ️  Flake information:"
-      - nix flake show
-      - echo ""
-      - echo "📦 Flake metadata:"
-      - nix flake metadata
-
-  show:
-    desc: Show flake outputs
-    cmds:
-      - nix flake show
-
-  metadata:
-    desc: Show flake metadata
-    cmds:
-      - nix flake metadata
-
-  tree:
-    desc: Show dependency tree
-    cmds:
-      - echo "🌳 Dependency tree:"
-      - nix-tree
-
-  graph:
-    desc: Show dependency graph of flake inputs
-    cmds:
-      - 'nix flake metadata --json | jq -r ''.locks.nodes | to_entries | .[] | "\(.key): \(.value.locked.type):\(.value.locked.owner // "")/\(.value.locked.repo // .value.locked.url // "")"'''
-
-  # Development shells
-  develop:
-    desc: Enter the default development shell
-    interactive: true
-    cmds:
-      - nix develop
-
-  develop-nix:
-    desc: Enter the Nix development shell
-    interactive: true
-    cmds:
-      - nix develop .#nix
-
-  repl:
-    desc: Open Nix REPL with flake loaded
-    interactive: true
-    cmds:
-      - nix repl --expr 'builtins.getFlake "{{.TASKFILE_DIR}}"'
-
-  # Cleanup tasks
-  clean:
-    desc: Clean build artifacts
-    cmds:
-      - echo "🧹 Cleaning build artifacts..."
-      - rm -rf result result-*
-      - echo "✅ Cleaned!"
-
-  clean-store:
-    desc: Clean Nix store (careful!)
-    prompt: This will remove all unused packages from the Nix store. Continue?
-    cmds:
-      - echo "🧹 Cleaning Nix store..."
-      - nix-collect-garbage -d
-      - echo "✅ Store cleaned!"
-
-  # CI tasks
-  ci:
-    desc: Run all CI checks locally
-    deps: [fmt-check, lint-all, test]
-    cmds:
-      - echo "✅ All CI checks passed!"
-
-  # Setup tasks
-  setup:
-    desc: Set up development environment
-    cmds:
-      - echo "🔧 Setting up development environment..."
-      - |
-        if command -v direnv >/dev/null 2>&1; then
-          echo "  ✓ direnv is installed"
-          if [ -f .envrc ]; then
-            echo "  ℹ️  Run 'direnv allow' to enable automatic environment loading"
-          fi
-        else
-          echo "  ⚠️  direnv is not installed. Install it for automatic environment loading."
-        fi
-      - echo "  ℹ️  Run 'nix develop' to enter the development shell"
-      - echo ""
-      - echo "✅ Setup complete!"
-
-  # Watch mode
-  watch:
-    desc: Run checks in watch mode (requires watchexec)
-    cmds:
-      - |
-        if command -v watchexec >/dev/null 2>&1; then
-          echo "👀 Watching for changes..."
-          watchexec -e nix task ci
-        else
-          echo "⚠️  watchexec is not installed. Install it with: nix-shell -p watchexec"
-        fi
-
-  # Documentation
-  docs:
-    desc: Generate documentation
-    cmds:
-      - echo "📚 Generating documentation..."
-      - echo "Documentation is in README.md and docs/"
-
-  # Hardware testing guidance
-  test-hardware-info:
-    desc: Show hardware testing information
-    cmds:
-      - echo "🔧 Hardware Testing Guide"
-      - echo ""
-      - echo "Before testing on real hardware - "
-      - echo "  1. Read tests/hardware/README.md for detailed procedures"
-      - echo "  2. Backup all important data"
-      - echo "  3. Have a recovery USB ready"
-      - echo "  4. Test in VM first if possible"
-      - echo ""
-      - echo "Hardware-specific test guides - "
-      - echo "  Intel GPU - tests/hardware/intel-gpu.md"
-      - echo "  NVIDIA GPU - tests/hardware/nvidia-gpu.md"
-      - echo "  Laptop - tests/hardware/laptop.md"
-      - echo ""
-      - echo "To create a test ISO - "
-      - echo "  nix build .#nixosConfigurations.test-hardware.config.system.build.isoImage"
-      - echo ""
-      - echo "Always test incrementally and document results!"
-    silent: true
-
-  test-report:
-    desc: Show testing status report
-    cmds:
-      - echo "📊 Testing Status Report"
-      - echo ""
-      - echo "Available tests - "
-      - echo "  Formatting - task test-formatting"
-      - echo "  Linting - task test-statix, task test-deadnix"
-      - echo "  Module evaluation - task test-eval"
-      - echo "  Unit tests - task test-unit"
-      - echo "  Integration tests - task test-integration"
-      - echo "  VM tests - task test-vm"
-      - echo "  Performance tests - task test-perf"
-      - echo ""
-      - echo "Run all tests - task test-all"
-      - echo "Run CI checks - task ci"
-      - echo ""
-      - echo "For hardware testing - task test-hardware-info"
-    silent: true
-
-  help:
-    desc: Show help message
-    cmds:
-      - echo "{{.PROJECT_NAME}} - Complete NixOS, nix-darwin, and home-manager configurations"
-      - echo ""
-      - echo "🚀 Quick Start:"
-      - echo "  task setup        - Set up development environment"
-      - echo "  task ci           - Run all CI checks"
-      - echo "  task test         - Run all tests"
-      - echo ""
-      - echo "📝 Code Quality:"
-      - echo "  task fmt          - Format code"
-      - echo "  task lint         - Lint code"
-      - echo "  task lint-all     - Run all linters"
-      - echo ""
-      - echo "🧪 Testing:"
-      - echo "  task test              - Run all tests"
-      - echo "  task test-unit         - Run unit tests"
-      - echo "  task test-integration  - Run integration tests"
-      - echo "  task test-all          - Run all test types"
-      - echo ""
-      - echo "🏗️  Building:"
-      - echo "  task build-nixos       - Build NixOS config"
-      - echo "  task build-darwin      - Build darwin config"
-      - echo "  task build-all         - Build all configs"
-      - echo ""
-      - echo "💻 Development:"
-      - echo "  task develop           - Enter default shell"
-      - echo "  task repl              - Open Nix REPL"
-      - echo ""
-      - echo "📦 Flake Management:"
-      - echo "  task update            - Update all inputs"
-      - echo "  task info              - Show flake info"
-      - echo "  task show              - Show flake outputs"
-      - echo ""
-      - echo "Run 'task --list' to see all available commands"
-    silent: true
+  # test-report:
+  #   desc: Show testing status report
+  #   cmds:
+  #     - echo "📊 Testing Status Report"
+  #     - echo ""
+  #     - echo "Available tests - "
+  #     - echo "  Formatting - task test-formatting"
+  #     - echo "  Linting - task test-statix, task test-deadnix"
+  #     - echo "  Module evaluation - task test-eval"
+  #     - echo "  Unit tests - task test-unit"
+  #     - echo "  Integration tests - task test-integration"
+  #     - echo "  VM tests - task test-vm"
+  #     - echo "  Performance tests - task test-perf"
+  #     - echo ""
+  #     - echo "Run all tests - task test-all"
+  #     - echo "Run CI checks - task ci"
+  #     - echo ""
+  #     - echo "For hardware testing - task test-hardware-info"
+  #   silent: true

@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for aggregating all logical tasks
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+includes:
+  build:
+    taskfile: logical/build.yml
+    flatten: true
+  clean:
+    taskfile: logical/clean.yml
+    flatten: true
+  deadcode:
+    taskfile: logical/deadcode.yml
+    flatten: true
+  dev:
+    taskfile: logical/dev.yml
+    flatten: true
+  docs:
+    taskfile: logical/docs.yml
+    flatten: true
+  format:
+    taskfile: logical/format.yml
+    flatten: true
+  lint:
+    taskfile: logical/lint.yml
+    flatten: true
+  setup:
+    taskfile: logical/setup.yml
+    flatten: true
+  test:
+    taskfile: logical/test.yml
+    flatten: true
+
+tasks: {}

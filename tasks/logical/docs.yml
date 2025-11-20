@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for all documentation tasks
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+tasks:
+  docs:build:
+    desc: Generate documentation
+    aliases:
+      - docs
+    cmds:
+      - echo "📚 Generating documentation..."
+      # TODO: Generate documentation properly
+      - echo "Documentation is in README.md and docs/"

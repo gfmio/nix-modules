@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for all cleaning tasks
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+tasks:
+  clean:
+    desc: Clean the project directory
+    cmds:
+      - task: nix:clean

@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for all testing tasks
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+tasks:
+  test:
+    desc: Run all tests
+    cmds:
+      - task: nix:test
+
+  test:unit:
+    desc: Run all unit tests
+    cmds:
+      - task: nix:test:unit
+
+  test:integration:
+    desc: Run all integration tests
+    cmds:
+      - task: nix:test:integration
+
+  test:vm:
+    desc: Run all VM tests
+    cmds:
+      - task: nix:test:integration
