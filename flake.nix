@@ -15,7 +15,6 @@
     };
 
     # nix-darwin-features (commented out until published)
-    # TODO: Uncomment when nix-darwin-features is available
     nix-darwin-features = {
       # url = "github:gfmio/nix-darwin-features";
       url = "path:/Users/gfmio/projects/github/gfmio/nix-darwin-features";
@@ -127,40 +126,25 @@
             touch $out
           '';
 
-          # Pre-commit hooks
-          pre-commit-check = config.pre-commit.installationScript;
+          # NixOS tests
+          eval-test = import ./tests/unit/eval-test.nix { inherit pkgs; };
+          nixos-integration = import ./tests/integration/nixos-test.nix { inherit pkgs self; };
+
+          # Darwin tests (only on darwin systems)
+          darwin-eval-test =
+            if pkgs.stdenv.isDarwin
+            then import ./tests/unit/darwin-eval-test.nix { inherit pkgs self; }
+            else pkgs.runCommand "darwin-eval-test-skipped" { } "echo 'Skipped on non-Darwin' > $out";
+
+          darwin-integration =
+            if pkgs.stdenv.isDarwin
+            then import ./tests/integration/darwin-test.nix { inherit pkgs self; }
+            else pkgs.runCommand "darwin-integration-skipped" { } "echo 'Skipped on non-Darwin' > $out";
         };
       };
 
       flake = {
-        # Library functions
-        lib = {
-          # Common utilities
-          common = import ./lib/common { inherit (nixpkgs) lib; inherit inputs; };
-
-          # Platform-specific utilities
-          nixos = import ./lib/nixos { inherit (nixpkgs) lib; inherit inputs; };
-          darwin = import ./lib/nix-darwin { inherit (nixpkgs) lib; inherit inputs; };
-          home = import ./lib/home-manager { inherit (nixpkgs) lib; inherit inputs; };
-
-          # Convenience function to create a NixOS system
-          mkNixosSystem = import ./lib/nixos/mkNixosSystem.nix {
-            inherit (nixpkgs) lib;
-            inherit inputs self;
-          };
-
-          # Convenience function to create a nix-darwin system
-          mkDarwinSystem = import ./lib/nix-darwin/mkDarwinSystem.nix {
-            inherit (nixpkgs) lib;
-            inherit inputs self;
-          };
-
-          # Convenience function to create a home-manager configuration
-          mkHome = import ./lib/home-manager/mkHome.nix {
-            inherit (nixpkgs) lib;
-            inherit inputs self;
-          };
-        };
+        # Library functions are defined in ./lib/default.nix
 
         # Export custom modules
         nixosModules = {

@@ -1,6 +1,6 @@
 { pkgs, self }:
 
-pkgs.nixosTest {
+pkgs.testers.nixosTest {
   name = "nixos-integration";
 
   nodes.machine = { ... }: {
@@ -22,8 +22,8 @@ pkgs.nixosTest {
     system.stateVersion = "24.11";
   };
 
-  testScript = '
+  testScript = ''
     machine.wait_for_unit("multi-user.target")
     machine.succeed("whoami")
-  ';
+  '';
 }

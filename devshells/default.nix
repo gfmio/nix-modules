@@ -43,13 +43,22 @@
         # Direnv
         direnv
         nix-direnv
+
+        # Shell utilities
+        jq
+        yq
+
+        # Testing utilities
+        shellcheck
       ] ++ lib.optionals stdenv.isLinux [
         nixos-rebuild
       ] ++ lib.optionals stdenv.isDarwin [
         darwin-rebuild
+        # Note: tart should be installed via homebrew on macOS
+        # brew install cirruslabs/cli/tart
       ];
 
-      shellHook = '
+      shellHook = ''
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "🔧 nix-modules Development Environment"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -71,7 +80,7 @@
           eval "$(direnv hook bash 2>/dev/null || true)"
           eval "$(direnv hook zsh 2>/dev/null || true)"
         fi
-      ';
+      '';
 
       NIX_CONFIG = "experimental-features = nix-command flakes";
       NIXPKGS_ALLOW_UNFREE = "1";

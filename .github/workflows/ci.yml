@@ -32,8 +32,8 @@ jobs:
       - name: Check formatting
         run: nix fmt -- --check .
 
-  build:
-    name: Build Configurations
+  build-nixos:
+    name: Build NixOS Configuration
     runs-on: ubuntu-latest
     needs: check
 
@@ -49,10 +49,29 @@ jobs:
 
       - name: Build NixOS configuration
         run: |
-          nix build .#nixosConfigurations.my-nixos-box.config.system.build.toplevel
+          nix build .#nixosConfigurations.my-nixos-box.config.system.build.toplevel -L
 
-  test:
-    name: Run Tests
+  build-darwin:
+    name: Build Darwin Configuration
+    runs-on: macos-latest
+    needs: check
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Build darwin configuration
+        run: |
+          nix build .#darwinConfigurations.my-mac.config.system.build.toplevel -L
+
+  test-nixos:
+    name: Run NixOS Tests
     runs-on: ubuntu-latest
     needs: check
 
@@ -66,8 +85,54 @@ jobs:
       - name: Setup Nix cache
         uses: DeterminateSystems/magic-nix-cache-action@v2
 
-      - name: Run unit tests
-        run: nix build .#checks.x86_64-linux.eval-test
+      - name: Run NixOS unit tests
+        run: nix build .#checks.x86_64-linux.eval-test -L
 
-      - name: Run integration tests
-        run: nix build .#checks.x86_64-linux.nixos-integration
+      - name: Run NixOS integration tests
+        run: nix build .#checks.x86_64-linux.nixos-integration -L
+
+  test-darwin:
+    name: Run Darwin Tests
+    runs-on: macos-latest
+    needs: check
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Run darwin unit tests
+        run: nix build .#checks.aarch64-darwin.darwin-eval-test -L
+
+      - name: Run darwin integration tests
+        run: nix build .#checks.aarch64-darwin.darwin-integration -L
+
+  # Optional: VM testing with tart (requires self-hosted runner with tart installed)
+  # Uncomment when you have a self-hosted runner set up
+  # test-darwin-vm:
+  #   name: Darwin VM Integration Test
+  #   runs-on: [self-hosted, macOS, tart]
+  #   needs: check
+  #   if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+  #
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Install Nix
+  #       uses: DeterminateSystems/nix-installer-action@v9
+  #
+  #     - name: Setup Nix cache
+  #       uses: DeterminateSystems/magic-nix-cache-action@v2
+  #
+  #     - name: Run VM tests
+  #       run: |
+  #         ./tests/integration/darwin-vm-test.sh
+  #       env:
+  #         TART_VM_NAME: sonoma-base
+  #         TART_VM_USER: admin
