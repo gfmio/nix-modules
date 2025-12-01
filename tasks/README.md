@@ -109,6 +109,39 @@ task deploy:test:nixos       # Build and activate without boot
 task deploy:nixos            # Full deployment
 ```
 
+### VM Testing with Tart
+
+Run integration tests in ephemeral VMs (macOS host only):
+
+```bash
+# macOS VM setup (pulls from Cirrus Labs registry)
+task tart:pull:macos        # Pull clean macOS base image
+task tart:base:macos        # Create test base with nix pre-installed
+
+# NixOS VM setup (must be created locally from ISO)
+task tart:create:nixos      # Create clean NixOS from ISO (interactive)
+task tart:create:nixos:auto # Create clean NixOS from ISO (automated)
+task tart:base:nixos        # Create test base
+
+# Run tests
+task tart:test:darwin       # Run darwin tests in VM
+task tart:test:nixos        # Run NixOS tests in VM
+task tart:test              # Run both
+
+# Utilities
+task tart:list              # List all VM images
+task tart:info              # Show VM testing workflow info
+task tart:clean:test        # Clean up leftover test VMs
+```
+
+The VM testing workflow:
+
+1. **macOS**: Pull clean base from `ghcr.io/cirruslabs/macos-tahoe-base`
+2. **NixOS**: Create clean base from ISO (no registry image available)
+3. Run setup scripts to create test base images with nix/tools pre-installed
+4. For each test run, clone the base → run tests → destroy clone
+5. Base images are reused across test runs for speed
+
 ## Adding New Tasks
 
 ### Logical Task
