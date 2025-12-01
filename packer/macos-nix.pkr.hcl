@@ -198,12 +198,19 @@ build {
   # Provisioner: Verify installation
   provisioner "shell" {
     inline = [
+      "#!/usr/bin/env zsh",
+      "",
       "set -euxo pipefail",
       "",
       "echo '=== Verifying installation ==='",
       "",
-      "# Source profiles",
-      "source ~/.zprofile || true",
+      "# Source nix directly (don't source .zprofile as it has zsh-specific syntax)",
+      "if [[ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]]; then",
+      "  . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh",
+      "fi",
+      "",
+      "# Add homebrew to PATH",
+      "eval \"$(/opt/homebrew/bin/brew shellenv)\"",
       "",
       "# Check nix",
       "echo 'Nix version:'",
@@ -216,6 +223,10 @@ build {
       "# Check brew (should already be installed from base image)",
       "echo 'Homebrew version:'",
       "brew --version | head -1",
+      "",
+      "# Check direnv was installed",
+      "echo 'Direnv version:'",
+      "direnv --version || echo 'direnv not in PATH yet (will be after shell restart)'",
       "",
       "echo '=== Installation verified ==='",
     ]
