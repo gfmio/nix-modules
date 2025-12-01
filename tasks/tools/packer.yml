@@ -73,7 +73,7 @@ tasks:
           echo "Delete it first with: task tart:delete VM_NAME={{.NIXOS_VM_NAME}}"
           exit 1
         fi
-      - |
+
         packer build \
           -var "vm_name={{.NIXOS_VM_NAME}}" \
           -var "iso_path={{.NIXOS_ISO_PATH}}" \
@@ -94,7 +94,7 @@ tasks:
           echo "Delete it first with: task tart:delete VM_NAME={{.NIXOS_VM_NAME}}"
           exit 1
         fi
-      - |
+
         PACKER_LOG=1 packer build \
           -var "vm_name={{.NIXOS_VM_NAME}}" \
           -var "iso_path={{.NIXOS_ISO_PATH}}" \
@@ -115,7 +115,7 @@ tasks:
           echo "Delete it first with: task tart:delete VM_NAME={{.NIXOS_VM_NAME}}"
           exit 1
         fi
-      - |
+
         packer build \
           -var "vm_name={{.NIXOS_VM_NAME}}" \
           -var "iso_path={{.NIXOS_ISO_PATH}}" \
