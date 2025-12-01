@@ -10,9 +10,12 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Defaults
 VM_USER="${VM_USER:-admin}"
+VM_PASSWORD="${VM_PASSWORD:-admin}"
 VM_SSH_PORT="${VM_SSH_PORT:-22}"
-SSH_TIMEOUT="${SSH_TIMEOUT:-120}"
+SSH_TIMEOUT="${SSH_TIMEOUT:-30}"
 SSH_OPTIONS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=5"
+USE_BRIDGED="${USE_BRIDGED:-false}"
+BRIDGED_NIC="${BRIDGED_NIC:-en0}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -60,6 +63,8 @@ Options:
   -n, --name NAME       Custom name for test VM (default: auto-generated)
   -c, --copy PATH       Copy additional files/directories to VM
   -e, --env VAR=VALUE   Set environment variable in VM
+  -b, --bridged [NIC]   Use bridged networking (default: en0) for internet access
+  --no-bridged          Use NAT networking (may not have internet)
   -v, --verbose         Enable verbose output
   -h, --help            Show this help message
 
@@ -78,8 +83,15 @@ Examples:
 
 Environment Variables:
   VM_USER         SSH user (default: admin)
+  VM_PASSWORD     SSH password (default: admin)
   VM_SSH_PORT     SSH port (default: 22)
   SSH_TIMEOUT     SSH connection timeout (default: 120)
+  USE_BRIDGED     Use bridged networking (default: false)
+  BRIDGED_NIC     Network interface for bridged mode (default: en0)
+
+Prerequisites:
+  - tart: brew install cirruslabs/cli/tart
+  - sshpass: brew install hudochenkov/sshpass/sshpass
 EOF
     exit 0
 }
@@ -117,6 +129,19 @@ parse_args() {
             -e|--env)
                 ENV_VARS+=("$2")
                 shift 2
+                ;;
+            -b|--bridged)
+                USE_BRIDGED=true
+                # Check if next arg is a NIC name (doesn't start with -)
+                if [[ -n "${2:-}" && ! "$2" =~ ^- ]]; then
+                    BRIDGED_NIC="$2"
+                    shift
+                fi
+                shift
+                ;;
+            --no-bridged)
+                USE_BRIDGED=false
+                shift
                 ;;
             -v|--verbose)
                 VERBOSE=true
@@ -157,7 +182,12 @@ check_prerequisites() {
         exit 1
     fi
 
-    if ! tart list | grep -q "^${BASE_IMAGE}[[:space:]]"; then
+    if ! command -v sshpass &>/dev/null; then
+        log_error "sshpass is not installed. Install with: brew install hudochenkov/sshpass/sshpass"
+        exit 1
+    fi
+
+    if ! tart list | awk '{print $2}' | grep -q "^${BASE_IMAGE}$"; then
         log_error "Base image '$BASE_IMAGE' not found"
         log_info "Available images:"
         tart list
@@ -187,7 +217,17 @@ clone_vm() {
 # Start VM
 start_vm() {
     log_step "Starting VM '$TEST_VM_NAME'..."
-    tart run "$TEST_VM_NAME" --no-graphics &
+
+    local tart_args=("$TEST_VM_NAME" "--no-graphics")
+
+    if [[ "$USE_BRIDGED" == "true" ]]; then
+        log_info "Using bridged networking on $BRIDGED_NIC"
+        tart_args+=("--net-bridged=$BRIDGED_NIC")
+    else
+        log_info "Using NAT networking (may not have internet access)"
+    fi
+
+    tart run "${tart_args[@]}" &
     TART_PID=$!
     log_info "VM started with PID $TART_PID"
 }
@@ -199,6 +239,12 @@ wait_for_ssh() {
     local start_time=$(date +%s)
     local vm_ip=""
 
+    # Build tart ip args
+    local ip_args=("$TEST_VM_NAME")
+    if [[ "$USE_BRIDGED" == "true" ]]; then
+        ip_args+=("--resolver=arp")
+    fi
+
     while true; do
         local elapsed=$(($(date +%s) - start_time))
 
@@ -208,11 +254,11 @@ wait_for_ssh() {
         fi
 
         # Try to get VM IP
-        vm_ip=$(tart ip "$TEST_VM_NAME" 2>/dev/null || true)
+        vm_ip=$(tart ip "${ip_args[@]}" 2>/dev/null || true)
 
         if [[ -n "$vm_ip" ]]; then
-            # Try SSH connection
-            if ssh $SSH_OPTIONS "$VM_USER@$vm_ip" "exit 0" 2>/dev/null; then
+            # Try SSH connection with sshpass for password authentication
+            if sshpass -p "$VM_PASSWORD" ssh $SSH_OPTIONS "$VM_USER@$vm_ip" "exit 0" 2>/dev/null; then
                 VM_IP="$vm_ip"
                 log_success "SSH available at $VM_USER@$VM_IP (took ${elapsed}s)"
                 return 0
@@ -238,7 +284,7 @@ copy_files_to_vm() {
     for path in "${COPY_PATHS[@]}"; do
         local basename=$(basename "$path")
         log_info "Copying $path → ~/$basename"
-        scp $SSH_OPTIONS -r "$path" "$VM_USER@$VM_IP:~/$basename"
+        sshpass -p "$VM_PASSWORD" scp $SSH_OPTIONS -r "$path" "$VM_USER@$VM_IP:~/$basename"
     done
 
     log_success "Files copied"
@@ -250,20 +296,22 @@ run_tests() {
 
     # Build environment variable exports
     local env_exports=""
-    for env_var in "${ENV_VARS[@]}"; do
-        env_exports+="export $env_var; "
-    done
+    if [[ ${#ENV_VARS[@]} -gt 0 ]]; then
+        for env_var in "${ENV_VARS[@]}"; do
+            env_exports+="export $env_var; "
+        done
+    fi
 
     local exit_code=0
 
     if [[ -f "$TEST_SCRIPT" ]]; then
         # Copy and execute script file
         local script_name=$(basename "$TEST_SCRIPT")
-        scp $SSH_OPTIONS "$TEST_SCRIPT" "$VM_USER@$VM_IP:~/$script_name"
-        ssh $SSH_OPTIONS "$VM_USER@$VM_IP" "${env_exports}chmod +x ~/$script_name && ~/$script_name ${TEST_ARGS[*]:-}" || exit_code=$?
+        sshpass -p "$VM_PASSWORD" scp $SSH_OPTIONS "$TEST_SCRIPT" "$VM_USER@$VM_IP:~/$script_name"
+        sshpass -p "$VM_PASSWORD" ssh $SSH_OPTIONS "$VM_USER@$VM_IP" "${env_exports}chmod +x ~/$script_name && ~/$script_name ${TEST_ARGS[*]:-}" || exit_code=$?
     else
         # Execute inline command
-        ssh $SSH_OPTIONS "$VM_USER@$VM_IP" "${env_exports}$TEST_SCRIPT ${TEST_ARGS[*]:-}" || exit_code=$?
+        sshpass -p "$VM_PASSWORD" ssh $SSH_OPTIONS "$VM_USER@$VM_IP" "${env_exports}$TEST_SCRIPT ${TEST_ARGS[*]:-}" || exit_code=$?
     fi
 
     if [[ $exit_code -eq 0 ]]; then

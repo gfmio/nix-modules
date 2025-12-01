@@ -260,22 +260,32 @@ tasks:
   # === Test Running ===
 
   tart:test:darwin:
-    desc: Run darwin tests in a VM
+    desc: Run darwin tests in a macOS VM
     platforms: [darwin]
     deps: [tart:check]
-    vars:
-      TEST_SCRIPT: '{{.TEST_SCRIPT | default "./tests/integration/darwin-vm-test.sh"}}'
     cmds:
-      - '{{.SCRIPTS_DIR}}/test-runner.sh -c . {{.MACOS_NIX_BASE}} "{{.TEST_SCRIPT}}"'
+      - |
+        # Check if base image exists (grep for name in second column)
+        if ! tart list 2>/dev/null | awk '{print $2}' | grep -q "^{{.MACOS_NIX_BASE}}$"; then
+          echo "Error: macOS base image '{{.MACOS_NIX_BASE}}' not found."
+          echo "Create it with: task packer:build:macos"
+          exit 1
+        fi
+        VM_USER=admin VM_PASSWORD=admin USE_BRIDGED=true {{.SCRIPTS_DIR}}/test-runner.sh -c {{.ROOT_DIR}} -u admin {{.MACOS_NIX_BASE}} "{{.ROOT_DIR}}/tests/vm/darwin-test.sh"
 
   tart:test:nixos:
-    desc: Run NixOS tests in a VM
+    desc: Run NixOS tests in a NixOS VM
     platforms: [darwin]
     deps: [tart:check]
-    vars:
-      TEST_SCRIPT: '{{.TEST_SCRIPT | default "nix flake check"}}'
     cmds:
-      - '{{.SCRIPTS_DIR}}/test-runner.sh -u nixos -c . {{.NIXOS_NIX_BASE}} "{{.TEST_SCRIPT}}"'
+      - |
+        # Check if base image exists (grep for name in second column)
+        if ! tart list 2>/dev/null | awk '{print $2}' | grep -q "^{{.NIXOS_CLEAN_IMAGE}}$"; then
+          echo "Error: NixOS base image '{{.NIXOS_CLEAN_IMAGE}}' not found."
+          echo "Create it with: task packer:build:nixos"
+          exit 1
+        fi
+        VM_USER=nixos VM_PASSWORD=nixos USE_BRIDGED=true {{.SCRIPTS_DIR}}/test-runner.sh -c {{.ROOT_DIR}} -u nixos {{.NIXOS_CLEAN_IMAGE}} "{{.ROOT_DIR}}/tests/vm/nixos-test.sh"
 
   tart:test:
     desc: Run tests in both darwin and NixOS VMs
@@ -364,21 +374,27 @@ tasks:
       - |
         echo "=== Tart VM Testing ==="
         echo ""
-        echo "Base Images:"
-        echo "  macOS (registry):   {{.MACOS_CLEAN_IMAGE}}"
-        echo "  NixOS (local):      {{.NIXOS_CLEAN_IMAGE}}"
-        echo "  macOS test base:    {{.MACOS_NIX_BASE}}"
-        echo "  NixOS test base:    {{.NIXOS_NIX_BASE}}"
+        echo "Base Images (built with Packer):"
+        echo "  macOS with Nix:     {{.MACOS_NIX_BASE}}"
+        echo "  NixOS:              {{.NIXOS_CLEAN_IMAGE}}"
         echo ""
-        echo "Workflow for macOS:"
-        echo "  1. task tart:pull:macos     # Pull clean macOS from registry"
-        echo "  2. task tart:base:macos     # Create test base with nix"
+        echo "Recommended Workflow (using Packer):"
+        echo "  1. task packer:build:macos  # Build macOS with Nix"
+        echo "  2. task packer:build:nixos  # Build NixOS from ISO"
         echo "  3. task tart:test:darwin    # Run darwin tests"
+        echo "  4. task tart:test:nixos     # Run NixOS tests"
+        echo "  5. task tart:test           # Run both"
         echo ""
-        echo "Workflow for NixOS:"
-        echo "  1. task tart:create:nixos   # Create clean NixOS from ISO (one-time)"
-        echo "  2. task tart:base:nixos     # Create test base"
-        echo "  3. task tart:test:nixos     # Run NixOS tests"
+        echo "Alternative Workflow (manual setup):"
+        echo "  1. task tart:pull:macos     # Pull clean macOS from registry"
+        echo "  2. task tart:base:macos     # Run setup script"
+        echo "  3. task tart:create:nixos   # Create NixOS from ISO (interactive)"
+        echo "  4. task tart:base:nixos     # Run setup script"
+        echo ""
+        echo "Test commands:"
+        echo "  task tart:test:darwin       # Run darwin VM tests"
+        echo "  task tart:test:nixos        # Run NixOS VM tests"
+        echo "  task tart:test              # Run all VM tests"
         echo ""
         echo "Current VMs:"
         tart list 2>/dev/null || echo "  (tart not available)"
