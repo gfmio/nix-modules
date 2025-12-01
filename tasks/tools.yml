@@ -11,6 +11,9 @@ includes:
   direnv:
     taskfile: tools/direnv.yml
     flatten: true
+  home-manager:
+    taskfile: tools/home-manager.yml
+    flatten: true
   nix:
     taskfile: tools/nix.yml
     flatten: true

@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for all CI/CD tasks
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+tasks:
+  ci:
+    desc: Run all CI checks locally
+    sources:
+      - '**/*.nix'
+      - 'flake.lock'
+    cmds:
+      - task: format:check
+      - task: lint:check
+      - task: test
+      - echo "✅ All CI checks passed!"
+
+  ci:quick:
+    desc: Run quick CI checks (format + lint only)
+    sources:
+      - '**/*.nix'
+    cmds:
+      - task: format:check
+      - task: lint:check
+      - echo "✅ Quick CI checks passed!"
+
+  ci:full:
+    desc: Run full CI checks including performance tests
+    sources:
+      - '**/*.nix'
+      - 'flake.lock'
+    cmds:
+      - task: ci
+      - task: nix:test:perf
+      - echo "✅ Full CI checks passed!"

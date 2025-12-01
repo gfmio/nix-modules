@@ -5,14 +5,23 @@
 version: '3'
 
 includes:
+  bench:
+    taskfile: logical/bench.yml
+    flatten: true
   build:
     taskfile: logical/build.yml
+    flatten: true
+  ci:
+    taskfile: logical/ci.yml
     flatten: true
   clean:
     taskfile: logical/clean.yml
     flatten: true
   deadcode:
     taskfile: logical/deadcode.yml
+    flatten: true
+  deploy:
+    taskfile: logical/deploy.yml
     flatten: true
   dev:
     taskfile: logical/dev.yml
@@ -22,6 +31,9 @@ includes:
     flatten: true
   format:
     taskfile: logical/format.yml
+    flatten: true
+  health:
+    taskfile: logical/health.yml
     flatten: true
   lint:
     taskfile: logical/lint.yml

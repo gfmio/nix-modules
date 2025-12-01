@@ -18,6 +18,11 @@ tasks:
 
   nix:build:nixos:my-nixos-box:
     desc: Build my-nixos-box NixOS configuration
+    sources:
+      - 'hosts/nixos/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
     cmds:
       - echo "🏗️  Building my-nixos-box NixOS configuration..."
       - nix build .#nixosConfigurations.my-nixos-box.config.system.build.toplevel -L
@@ -27,6 +32,11 @@ tasks:
     desc: Build a NixOS configuration
     vars:
       NAME: '{{index .MATCH 0}}'
+    sources:
+      - 'hosts/nixos/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
     cmds:
       - echo "🏗️  Building {{.NAME}} NixOS configuration..."
       - nix build .#nixosConfigurations.{{.NAME}}.config.system.build.toplevel -L
@@ -34,6 +44,11 @@ tasks:
 
   nix:build:nixos:
     desc: Build all NixOS configurations
+    sources:
+      - 'hosts/nixos/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
     cmds:
       - echo "🏗️  Building all NixOS configurations..."
       - task: nix:build:nixos:my-nixos-box
@@ -42,6 +57,11 @@ tasks:
   nix:build:darwin:my-mac:
     desc: Build my-mac nix-darwin configuration
     platforms: [darwin]
+    sources:
+      - 'hosts/nix-darwin/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
     cmds:
       - echo "🏗️  Building my-mac nix-darwin configuration..."
       - nix build .#darwinConfigurations.my-mac.config.system.build.toplevel -L
@@ -52,6 +72,11 @@ tasks:
     platforms: [darwin]
     vars:
       NAME: '{{index .MATCH 0}}'
+    sources:
+      - 'hosts/nix-darwin/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
     cmds:
       - echo "🏗️  Building {{.NAME}} nix-darwin configuration..."
       - nix build .#darwinConfigurations.{{.NAME}}.config.system.build.toplevel -L
@@ -60,6 +85,11 @@ tasks:
   nix:build:darwin:
     desc: Build all nix-darwin configurations
     platforms: [darwin]
+    sources:
+      - 'hosts/nix-darwin/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
     cmds:
       - echo "🏗️  Building all nix-darwin configurations..."
       - task: nix:build:darwin:my-mac
@@ -69,10 +99,16 @@ tasks:
     desc: Build all configurations
     aliases:
       - nix:build
+    sources:
+      - '**/*.nix'
+      - 'flake.lock'
     cmds:
       - echo "🏗️  Building all configurations..."
-      - task: build:darwin
-      - task: build:nixos
+      - task: nix:build:nixos
+      - |
+        if [ "$(uname)" = "Darwin" ]; then
+          task nix:build:darwin
+        fi
       - echo "✅ All configurations built!"
 
   # Development tasks
@@ -99,6 +135,9 @@ tasks:
 
   nix:test:
     desc: Run all nix tests
+    sources:
+      - '**/*.nix'
+      - 'flake.lock'
     cmds:
       - task: nix:flake:check
 
@@ -106,12 +145,21 @@ tasks:
 
   nix:test:unit:
     desc: Run all nix unit tests
+    sources:
+      - '**/*.nix'
+      - 'flake.lock'
     cmds:
       - task: nix:test:unit:nixos
       - task: nix:test:unit:darwin
 
   nix:test:unit:nixos:
     desc: Run all NixOS unit tests
+    sources:
+      - 'tests/unit/**/*.nix'
+      - 'hosts/nixos/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
     cmds:
       - echo "🧪 Running NixOS unit tests..."
       - nix build .#checks.x86_64-linux.eval-test -L
@@ -120,6 +168,12 @@ tasks:
   nix:test:unit:darwin:
     desc: Run all nix-darwin unit tests
     platforms: [darwin]
+    sources:
+      - 'tests/unit/**/*.nix'
+      - 'hosts/nix-darwin/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
     cmds:
       - echo "🧪 Running nix-darwin unit tests..."
       - nix build .#checks.aarch64-darwin.darwin-eval-test -L
@@ -129,12 +183,24 @@ tasks:
 
   nix:test:integration:
     desc: Run all nix integration tests
+    sources:
+      - 'tests/integration/**/*.nix'
+      - 'hosts/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
     cmds:
       - task: nix:test:integration:nixos
       - task: nix:test:integration:darwin
 
   nix:test:integration:nixos:
     desc: Run all NixOS integration tests
+    sources:
+      - 'tests/integration/**/*.nix'
+      - 'hosts/nixos/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
     cmds:
       - echo "🧪 Running NixOS integration tests..."
       - nix build .#checks.x86_64-linux.nixos-integration -L
@@ -143,6 +209,12 @@ tasks:
   nix:test:integration:darwin:
     desc: Run all nix-darwin integration tests
     platforms: [darwin]
+    sources:
+      - 'tests/integration/**/*.nix'
+      - 'hosts/nix-darwin/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
     cmds:
       - echo "🧪 Running nix-darwin integration tests..."
       - nix build .#checks.aarch64-darwin.darwin-integration -L

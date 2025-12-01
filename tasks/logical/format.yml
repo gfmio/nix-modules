@@ -10,6 +10,8 @@ tasks:
     aliases:
       - format
       - fmt
+    sources:
+      - '**/*.nix'
     cmds:
       - task: nix:fmt
 
@@ -17,5 +19,7 @@ tasks:
     desc: Check formatting of all files
     aliases:
       - fmt:check
+    sources:
+      - '**/*.nix'
     cmds:
       - task: nix:fmt:check

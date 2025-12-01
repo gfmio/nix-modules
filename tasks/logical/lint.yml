@@ -9,6 +9,8 @@ tasks:
     desc: Check all files for linting errors
     aliases:
       - lint
+    sources:
+      - '**/*.nix'
     cmds:
       - task: nix:lint:check
 
@@ -16,5 +18,7 @@ tasks:
     desc: Fix all auto-fixable linting errors in all files
     aliases:
       - fix
+    sources:
+      - '**/*.nix'
     cmds:
       - echo "No autofixing linters available."

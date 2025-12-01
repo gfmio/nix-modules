@@ -1,0 +1,125 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for benchmarking and profiling
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+tasks:
+  bench:eval:
+    desc: Benchmark evaluation times for all configurations
+    sources:
+      - '**/*.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "⚡ Benchmarking evaluation times..."
+      - task: nix:test:perf
+
+  bench:eval:nixos:
+    desc: Benchmark NixOS configuration evaluation
+    sources:
+      - 'hosts/nixos/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "⚡ Benchmarking NixOS evaluation..."
+      - |
+        START=$(date +%s%N)
+        nix eval .#nixosConfigurations.my-nixos-box.config.system.build.toplevel.drvPath >/dev/null 2>&1
+        END=$(date +%s%N)
+        DURATION=$((($END - $START) / 1000000))
+        echo "  ⏱️  NixOS evaluation: ${DURATION}ms"
+        if [ $DURATION -gt 5000 ]; then
+          echo "  ⚠️  Warning: Evaluation took more than 5 seconds"
+        fi
+
+  bench:eval:darwin:
+    desc: Benchmark nix-darwin configuration evaluation
+    platforms: [darwin]
+    sources:
+      - 'hosts/nix-darwin/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "⚡ Benchmarking darwin evaluation..."
+      - |
+        START=$(date +%s%N)
+        nix eval .#darwinConfigurations.my-mac.config.system.build.toplevel.drvPath >/dev/null 2>&1
+        END=$(date +%s%N)
+        DURATION=$((($END - $START) / 1000000))
+        echo "  ⏱️  Darwin evaluation: ${DURATION}ms"
+        if [ $DURATION -gt 5000 ]; then
+          echo "  ⚠️  Warning: Evaluation took more than 5 seconds"
+        fi
+
+  bench:build:
+    desc: Benchmark build times for all configurations
+    sources:
+      - '**/*.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "⚡ Benchmarking build times..."
+      - |
+        echo "NixOS configurations:"
+        time nix build .#nixosConfigurations.my-nixos-box.config.system.build.toplevel --dry-run
+      - |
+        if [ "$(uname)" = "Darwin" ]; then
+          echo "Darwin configurations:"
+          time nix build .#darwinConfigurations.my-mac.config.system.build.toplevel --dry-run
+        fi
+
+  bench:build:nixos:
+    desc: Benchmark NixOS configuration build time
+    sources:
+      - 'hosts/nixos/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "⚡ Benchmarking NixOS build time..."
+      - time nix build .#nixosConfigurations.my-nixos-box.config.system.build.toplevel --dry-run
+
+  bench:build:darwin:
+    desc: Benchmark nix-darwin configuration build time
+    platforms: [darwin]
+    sources:
+      - 'hosts/nix-darwin/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "⚡ Benchmarking darwin build time..."
+      - time nix build .#darwinConfigurations.my-mac.config.system.build.toplevel --dry-run
+
+  bench:flake:
+    desc: Benchmark flake evaluation
+    sources:
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "⚡ Benchmarking flake evaluation..."
+      - time nix flake show --all-systems
+
+  profile:eval:nixos:
+    desc: Profile NixOS configuration evaluation with detailed trace
+    sources:
+      - 'hosts/nixos/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "📊 Profiling NixOS evaluation..."
+      - nix eval .#nixosConfigurations.my-nixos-box.config.system.build.toplevel.drvPath --show-trace
+
+  profile:eval:darwin:
+    desc: Profile nix-darwin configuration evaluation with detailed trace
+    platforms: [darwin]
+    sources:
+      - 'hosts/nix-darwin/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "📊 Profiling darwin evaluation..."
+      - nix eval .#darwinConfigurations.my-mac.config.system.build.toplevel.drvPath --show-trace

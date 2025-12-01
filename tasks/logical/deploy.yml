@@ -1,0 +1,121 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for deployment tasks
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+tasks:
+  deploy:nixos:
+    desc: Deploy NixOS configuration to current host
+    platforms: [linux]
+    sources:
+      - 'hosts/nixos/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "🚀 Deploying NixOS configuration..."
+      - sudo nixos-rebuild switch --flake .
+      - echo "✅ NixOS configuration deployed!"
+
+  deploy:nixos:boot:
+    desc: Deploy NixOS configuration and set as boot default
+    platforms: [linux]
+    sources:
+      - 'hosts/nixos/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "🚀 Deploying NixOS configuration (boot)..."
+      - sudo nixos-rebuild boot --flake .
+      - echo "✅ NixOS configuration will be active on next boot!"
+
+  deploy:darwin:
+    desc: Deploy nix-darwin configuration to current host
+    platforms: [darwin]
+    sources:
+      - 'hosts/nix-darwin/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "🚀 Deploying nix-darwin configuration..."
+      - darwin-rebuild switch --flake .
+      - echo "✅ nix-darwin configuration deployed!"
+
+  deploy:home:
+    desc: Deploy home-manager configuration for current user
+    sources:
+      - 'home/**/*.nix'
+      - 'modules/home-manager/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "🚀 Deploying home-manager configuration..."
+      - home-manager switch --flake .
+      - echo "✅ home-manager configuration deployed!"
+
+  deploy:test:nixos:
+    desc: Test NixOS configuration (build and activate, but don't set as boot default)
+    platforms: [linux]
+    sources:
+      - 'hosts/nixos/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "🧪 Testing NixOS configuration..."
+      - sudo nixos-rebuild test --flake .
+      - echo "✅ NixOS configuration tested and activated (not set as boot default)!"
+
+  deploy:test:darwin:
+    desc: Test nix-darwin configuration (check but don't activate)
+    platforms: [darwin]
+    sources:
+      - 'hosts/nix-darwin/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "🧪 Testing nix-darwin configuration..."
+      - darwin-rebuild check --flake .
+      - echo "✅ nix-darwin configuration tested!"
+
+  deploy:dry-run:nixos:
+    desc: Dry run NixOS deployment (show what would be built/changed)
+    platforms: [linux]
+    sources:
+      - 'hosts/nixos/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "🔍 Dry run NixOS deployment..."
+      - sudo nixos-rebuild dry-build --flake .
+      - echo "✅ Dry run complete!"
+
+  deploy:dry-run:darwin:
+    desc: Dry run nix-darwin deployment (build but don't activate)
+    platforms: [darwin]
+    sources:
+      - 'hosts/nix-darwin/**/*.nix'
+      - 'modules/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "🔍 Dry run nix-darwin deployment..."
+      - darwin-rebuild build --flake .
+      - echo "✅ Dry run complete!"
+
+  deploy:dry-run:home:
+    desc: Dry run home-manager deployment
+    sources:
+      - 'home/**/*.nix'
+      - 'modules/home-manager/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "🔍 Dry run home-manager deployment..."
+      - home-manager build --flake .
+      - echo "✅ Dry run complete!"
