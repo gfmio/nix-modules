@@ -86,11 +86,15 @@ source "tart-cli" "nixos" {
   boot_command = [
     # Wait for the system to fully boot
     "<wait30>",
-    # Start SSH daemon
-    "systemctl start sshd<enter>",
+    # Start SSH daemon (use full path as systemctl may not be in PATH)
+    "sudo /run/current-system/sw/bin/systemctl start sshd<enter>",
     "<wait3>",
-    # Set root password for SSH access
-    "echo 'root:${var.root_password}' | chpasswd<enter>",
+    # Set root password for SSH access using passwd (more reliable)
+    "sudo passwd root<enter>",
+    "<wait1>",
+    "${var.root_password}<enter>",
+    "<wait1>",
+    "${var.root_password}<enter>",
     "<wait2>"
   ]
 }
