@@ -117,7 +117,7 @@ tasks:
         echo "VM shut down. Base image '{{.NIXOS_CLEAN_IMAGE}}' is ready."
 
   tart:create:nixos:auto:
-    desc: Create NixOS clean base image with automated installation (VNC)
+    desc: Create NixOS clean base image with automated installation (VNC script)
     platforms: [darwin]
     deps: [tart:check]
     cmds:
@@ -125,6 +125,12 @@ tasks:
         VM_NAME="{{.NIXOS_CLEAN_IMAGE}}" \
         ISO_URL="{{.NIXOS_ISO_URL}}" \
         {{.SCRIPTS_DIR}}/nixos-create-base.sh
+
+  tart:create:nixos:packer:
+    desc: Create NixOS clean base image with Packer (recommended)
+    platforms: [darwin]
+    cmds:
+      - task: packer:build:nixos
 
   # === Base Image Creation ===
 

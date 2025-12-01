@@ -1,0 +1,148 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for Packer VM image building
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+vars:
+  PACKER_DIR: '{{.ROOT_DIR}}/packer'
+  # NixOS settings
+  NIXOS_ISO_URL: '{{.NIXOS_ISO_URL | default "https://channels.nixos.org/nixos-24.11/latest-nixos-minimal-aarch64-linux.iso"}}'
+  NIXOS_ISO_PATH: '{{.NIXOS_ISO_PATH | default "/tmp/nixos-minimal-aarch64.iso"}}'
+  NIXOS_VM_NAME: '{{.NIXOS_VM_NAME | default "nixos-clean"}}'
+
+tasks:
+  # === Prerequisites ===
+
+  packer:check:
+    desc: Check if packer is available
+    silent: true
+    cmds:
+      - |
+        if ! command -v packer &> /dev/null; then
+          echo "packer not found. Install it with: brew tap hashicorp/tap && brew install hashicorp/tap/packer"
+          exit 1
+        fi
+        echo "packer is installed: $(packer --version)"
+
+  packer:init:
+    desc: Initialize Packer plugins
+    deps: [packer:check]
+    cmds:
+      - packer init {{.PACKER_DIR}}
+
+  # === ISO Management ===
+
+  packer:iso:download:
+    desc: Download NixOS ISO for Packer builds
+    cmds:
+      - |
+        if [[ -f "{{.NIXOS_ISO_PATH}}" ]]; then
+          echo "ISO already exists: {{.NIXOS_ISO_PATH}}"
+        else
+          echo "Downloading NixOS ISO..."
+          curl -L -o "{{.NIXOS_ISO_PATH}}" "{{.NIXOS_ISO_URL}}"
+          echo "Download complete"
+        fi
+
+  packer:iso:clean:
+    desc: Remove cached NixOS ISO
+    cmds:
+      - rm -f "{{.NIXOS_ISO_PATH}}"
+      - echo "ISO removed"
+
+  # === Build Commands ===
+
+  packer:validate:
+    desc: Validate Packer configuration
+    deps: [packer:init]
+    cmds:
+      - packer validate {{.PACKER_DIR}}
+
+  packer:build:nixos:
+    desc: Build NixOS base image with Packer
+    platforms: [darwin]
+    deps:
+      - packer:init
+      - packer:iso:download
+    cmds:
+      - |
+        # Check if VM already exists
+        if tart list 2>/dev/null | grep -q "^{{.NIXOS_VM_NAME}}[[:space:]]"; then
+          echo "VM '{{.NIXOS_VM_NAME}}' already exists."
+          echo "Delete it first with: task tart:delete VM_NAME={{.NIXOS_VM_NAME}}"
+          exit 1
+        fi
+      - |
+        packer build \
+          -var "vm_name={{.NIXOS_VM_NAME}}" \
+          -var "iso_path={{.NIXOS_ISO_PATH}}" \
+          -var "iso_url={{.NIXOS_ISO_URL}}" \
+          {{.PACKER_DIR}}/nixos.pkr.hcl
+
+  packer:build:nixos:debug:
+    desc: Build NixOS base image with debug output
+    platforms: [darwin]
+    deps:
+      - packer:init
+      - packer:iso:download
+    cmds:
+      - |
+        # Check if VM already exists
+        if tart list 2>/dev/null | grep -q "^{{.NIXOS_VM_NAME}}[[:space:]]"; then
+          echo "VM '{{.NIXOS_VM_NAME}}' already exists."
+          echo "Delete it first with: task tart:delete VM_NAME={{.NIXOS_VM_NAME}}"
+          exit 1
+        fi
+      - |
+        PACKER_LOG=1 packer build \
+          -var "vm_name={{.NIXOS_VM_NAME}}" \
+          -var "iso_path={{.NIXOS_ISO_PATH}}" \
+          -var "iso_url={{.NIXOS_ISO_URL}}" \
+          {{.PACKER_DIR}}/nixos.pkr.hcl
+
+  packer:build:nixos:gui:
+    desc: Build NixOS base image with GUI (for debugging)
+    platforms: [darwin]
+    deps:
+      - packer:init
+      - packer:iso:download
+    cmds:
+      - |
+        # Check if VM already exists
+        if tart list 2>/dev/null | grep -q "^{{.NIXOS_VM_NAME}}[[:space:]]"; then
+          echo "VM '{{.NIXOS_VM_NAME}}' already exists."
+          echo "Delete it first with: task tart:delete VM_NAME={{.NIXOS_VM_NAME}}"
+          exit 1
+        fi
+      - |
+        packer build \
+          -var "vm_name={{.NIXOS_VM_NAME}}" \
+          -var "iso_path={{.NIXOS_ISO_PATH}}" \
+          -var "iso_url={{.NIXOS_ISO_URL}}" \
+          -var "headless=false" \
+          {{.PACKER_DIR}}/nixos.pkr.hcl
+
+  # === Info ===
+
+  packer:info:
+    desc: Show Packer build information
+    silent: true
+    cmds:
+      - |
+        echo "=== Packer VM Building ==="
+        echo ""
+        echo "Configuration directory: {{.PACKER_DIR}}"
+        echo ""
+        echo "NixOS Settings:"
+        echo "  ISO URL:  {{.NIXOS_ISO_URL}}"
+        echo "  ISO Path: {{.NIXOS_ISO_PATH}}"
+        echo "  VM Name:  {{.NIXOS_VM_NAME}}"
+        echo ""
+        echo "Commands:"
+        echo "  task packer:build:nixos       # Build NixOS base image"
+        echo "  task packer:build:nixos:gui   # Build with GUI (debugging)"
+        echo "  task packer:build:nixos:debug # Build with verbose logging"
+        echo "  task packer:validate          # Validate configuration"
+        echo "  task packer:iso:download      # Download NixOS ISO"
+        echo "  task packer:iso:clean         # Remove cached ISO"

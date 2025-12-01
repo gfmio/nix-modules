@@ -25,6 +25,7 @@ tasks/
 │   ├── direnv.yml    # direnv setup
 │   ├── home-manager.yml # home-manager operations
 │   ├── nix.yml       # Nix commands
+│   ├── packer.yml    # Packer VM image building
 │   ├── statix.yml    # statix linter
 │   └── tart.yml      # tart VM manager
 ├── logical.yml       # Aggregates logical tasks
@@ -119,9 +120,10 @@ task tart:pull:macos        # Pull clean macOS base image
 task tart:base:macos        # Create test base with nix pre-installed
 
 # NixOS VM setup (must be created locally from ISO)
-task tart:create:nixos      # Create clean NixOS from ISO (interactive)
-task tart:create:nixos:auto # Create clean NixOS from ISO (automated)
-task tart:base:nixos        # Create test base
+task tart:create:nixos         # Create clean NixOS from ISO (interactive)
+task tart:create:nixos:packer  # Create clean NixOS with Packer (recommended)
+task tart:create:nixos:auto    # Create clean NixOS from ISO (VNC script)
+task tart:base:nixos           # Create test base
 
 # Run tests
 task tart:test:darwin       # Run darwin tests in VM
@@ -141,6 +143,25 @@ The VM testing workflow:
 3. Run setup scripts to create test base images with nix/tools pre-installed
 4. For each test run, clone the base → run tests → destroy clone
 5. Base images are reused across test runs for speed
+
+### Packer VM Image Building
+
+Build VM images with HashiCorp Packer (recommended for NixOS):
+
+```bash
+# Build NixOS base image
+task packer:build:nixos         # Automated build (headless)
+task packer:build:nixos:gui     # Build with GUI (for debugging)
+task packer:build:nixos:debug   # Build with verbose logging
+
+# Utilities
+task packer:validate            # Validate Packer configuration
+task packer:iso:download        # Download NixOS ISO
+task packer:iso:clean           # Remove cached ISO
+task packer:info                # Show Packer build info
+```
+
+Packer provides more reliable automated VM image creation than VNC scripting.
 
 ## Adding New Tasks
 

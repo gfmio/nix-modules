@@ -23,5 +23,8 @@ includes:
   tart:
     taskfile: tools/tart.yml
     flatten: true
+  packer:
+    taskfile: tools/packer.yml
+    flatten: true
 
 tasks: {}
