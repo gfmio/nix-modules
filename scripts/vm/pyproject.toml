@@ -1,0 +1,8 @@
+[project]
+name = "vm-scripts"
+version = "0.1.0"
+description = "VM automation scripts for tart-based testing"
+requires-python = ">=3.12"
+dependencies = [
+    "vncdotool>=1.2.0",
+]

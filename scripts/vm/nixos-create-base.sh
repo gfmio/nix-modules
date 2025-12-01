@@ -28,6 +28,8 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 TART_PID=""
 VM_IP=""
+VNC_HOST=""
+VNC_PASSWORD=""
 
 cleanup() {
     local exit_code=$?
@@ -61,11 +63,15 @@ check_prerequisites() {
         exit 1
     fi
 
-    # Install vncdotool if not available
-    if ! python3 -c "import vncdotool" 2>/dev/null; then
-        log_info "Installing vncdotool for VNC automation..."
-        pip3 install vncdotool --quiet
+    # Check uv is available for running vncdotool
+    if ! command -v uv &>/dev/null; then
+        log_error "uv is required. Install with: curl -LsSf https://astral.sh/uv/install.sh | sh"
+        exit 1
     fi
+
+    # Sync the Python environment
+    log_info "Syncing Python environment..."
+    (cd "$SCRIPT_DIR" && uv sync --quiet)
 
     log_success "Prerequisites satisfied"
 }
@@ -134,31 +140,24 @@ generate_nixos_config() {
 NIXOS_CONFIG
 }
 
-# Send keystrokes via VNC
+# Send keystrokes via VNC using vncdotool CLI
 vnc_type() {
     local text="$1"
-    local delay="${2:-0.05}"
-    python3 << EOF
-import time
-from vncdotool import api
-client = api.connect('localhost:$VNC_PORT')
-time.sleep(0.5)
-client.type('$text', delay=$delay)
-client.disconnect()
-EOF
+    log_info "VNC typing: '$text' to $VNC_HOST"
+    (cd "$SCRIPT_DIR" && uv run vncdo -s "$VNC_HOST" -p "$VNC_PASSWORD" type "$text") || {
+        log_error "VNC type command failed"
+        return 1
+    }
 }
 
 # Send special key via VNC
 vnc_key() {
     local key="$1"
-    python3 << EOF
-from vncdotool import api
-import time
-client = api.connect('localhost:$VNC_PORT')
-time.sleep(0.2)
-client.key('$key')
-client.disconnect()
-EOF
+    log_info "VNC key: '$key' to $VNC_HOST"
+    (cd "$SCRIPT_DIR" && uv run vncdo -s "$VNC_HOST" -p "$VNC_PASSWORD" key "$key") || {
+        log_error "VNC key command failed"
+        return 1
+    }
 }
 
 # Send a command and press enter
@@ -182,11 +181,40 @@ vnc_wait() {
 # Start VM with VNC
 start_vm_with_vnc() {
     log_info "Starting VM with ISO and VNC enabled..."
-    tart run --disk "$ISO_PATH" --vnc --no-graphics "$VM_NAME" &
+
+    # Start VM and capture output to get VNC address
+    local tart_output
+    tart_output=$(mktemp)
+    tart run --disk "$ISO_PATH" --vnc-experimental --no-graphics "$VM_NAME" 2>&1 | tee "$tart_output" &
     TART_PID=$!
 
-    # Wait for VNC to be ready
-    sleep 5
+    # Wait for VNC to be ready and capture the VNC URL
+    # Format: vnc://:password@host:port
+    log_info "Waiting for VNC server to start..."
+    local vnc_attempts=0
+    while [[ $vnc_attempts -lt 30 ]]; do
+        if grep -q "VNC server is running at" "$tart_output" 2>/dev/null; then
+            local vnc_url
+            vnc_url=$(grep "VNC server is running at" "$tart_output" | sed 's/.*vnc:\/\///')
+            # Parse: :password@host:port -> convert to host::port for vncdo
+            VNC_PASSWORD=$(echo "$vnc_url" | sed 's/^:\([^@]*\)@.*/\1/')
+            # Extract host:port and convert to host::port
+            local host_port
+            host_port=$(echo "$vnc_url" | sed 's/^:[^@]*@//')
+            VNC_HOST=$(echo "$host_port" | sed 's/:\([0-9]*\)$/::\1/')
+            log_info "VNC host: $VNC_HOST"
+            log_info "VNC password: $VNC_PASSWORD"
+            break
+        fi
+        ((vnc_attempts++))
+        sleep 1
+    done
+    rm -f "$tart_output"
+
+    if [[ -z "$VNC_HOST" ]]; then
+        log_error "Could not detect VNC host from tart output"
+        exit 1
+    fi
 
     # Wait for VM to get an IP
     log_info "Waiting for VM to boot..."
@@ -207,12 +235,30 @@ start_vm_with_vnc() {
     fi
 }
 
+# Test VNC connection
+test_vnc_connection() {
+    log_info "Testing VNC connection to $VNC_HOST..."
+    if (cd "$SCRIPT_DIR" && uv run vncdo -s "$VNC_HOST" -p "$VNC_PASSWORD" pause 0.1); then
+        log_success "VNC connection successful"
+        return 0
+    else
+        log_error "VNC connection failed"
+        return 1
+    fi
+}
+
 # Automate the NixOS installation via VNC
 run_vnc_installation() {
     log_info "Starting VNC-automated NixOS installation..."
 
     # Wait for the system to boot to login prompt
-    vnc_wait 60 "Waiting for NixOS live environment to boot"
+    vnc_wait 10 "Waiting for NixOS live environment to boot"
+
+    # Test VNC connection first
+    if ! test_vnc_connection; then
+        log_error "Cannot connect to VNC server"
+        exit 1
+    fi
 
     # Login as root (NixOS live auto-logs in, but let's make sure we have a shell)
     vnc_key "enter"
