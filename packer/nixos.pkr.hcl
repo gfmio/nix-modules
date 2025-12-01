@@ -63,6 +63,18 @@ variable "root_password" {
   sensitive   = true
 }
 
+variable "bridged_nic" {
+  type        = string
+  default     = "en0"
+  description = "Network interface for bridged networking (e.g., en0, en1)"
+}
+
+variable "use_bridged" {
+  type        = bool
+  default     = true
+  description = "Use bridged networking instead of NAT (recommended for internet access)"
+}
+
 # Source: Create NixOS VM from ISO
 source "tart-cli" "nixos" {
   vm_name      = var.vm_name
@@ -75,6 +87,11 @@ source "tart-cli" "nixos" {
   ssh_username = "root"
   ssh_password = var.root_password
   ssh_timeout  = "30m"
+
+  # Networking - use bridged for reliable internet access
+  # NAT mode has known issues on macOS where outbound traffic doesn't work
+  run_extra_args = var.use_bridged ? ["--net-bridged=${var.bridged_nic}"] : []
+  ip_extra_args  = var.use_bridged ? ["--resolver=arp"] : []
 
   # Headless mode for automated builds
   headless = true
@@ -183,10 +200,16 @@ build {
       "echo '=== Installing NixOS ==='",
       "nixos-install --no-root-passwd",
       "",
-      "echo '=== Installation complete ==='",
-      "",
-      "echo '=== Shutting down ==='",
-      "shutdown -h now || true"
+      "echo '=== Installation complete ==='"
+    ]
+  }
+
+  # Provisioner: Shutdown (separate to handle disconnect properly)
+  provisioner "shell" {
+    inline = [
+      "echo '=== Shutting down in 2 seconds ==='",
+      "nohup sh -c 'sleep 2 && shutdown -h now' >/dev/null 2>&1 &",
+      "echo 'Shutdown scheduled'"
     ]
     expect_disconnect = true
   }
