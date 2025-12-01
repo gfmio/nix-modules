@@ -261,14 +261,26 @@ run_vnc_installation() {
     fi
 
     # Login as root (NixOS live auto-logs in, but let's make sure we have a shell)
+    log_info "Pressing Enter to ensure we have a shell..."
     vnc_key "enter"
-    sleep 2
+    sleep 3
 
     log_info "Setting up SSH in live environment..."
 
-    # Enable SSH and set root password
-    vnc_command "systemctl start sshd" 2
-    vnc_command "echo 'root:temp' | chpasswd" 2
+    # NixOS live environment - need to start sshd and set root password
+    # Use sudo in case we're not root, and full path just in case
+    vnc_command "sudo /run/current-system/sw/bin/systemctl start sshd" 3
+    sleep 1
+    # Set root password using passwd command (more reliable than chpasswd)
+    vnc_type "sudo passwd root"
+    vnc_key "enter"
+    sleep 1
+    vnc_type "temp"
+    vnc_key "enter"
+    sleep 1
+    vnc_type "temp"
+    vnc_key "enter"
+    sleep 2
 
     log_success "SSH enabled in live environment"
 
