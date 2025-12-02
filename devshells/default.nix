@@ -73,10 +73,13 @@
           pre-commit install --install-hooks >/dev/null 2>&1 || true
         fi
 
-        # Set up direnv
+        # Set up direnv (only for the current shell type)
         if command -v direnv >/dev/null 2>&1; then
-          eval "$(direnv hook bash 2>/dev/null || true)"
-          eval "$(direnv hook zsh 2>/dev/null || true)"
+          if [ -n "$ZSH_VERSION" ]; then
+            eval "$(direnv hook zsh 2>/dev/null || true)"
+          elif [ -n "$BASH_VERSION" ]; then
+            eval "$(direnv hook bash 2>/dev/null || true)"
+          fi
         fi
       '';
 
