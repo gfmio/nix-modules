@@ -1,9 +1,6 @@
 { inputs, ... }:
 
 {
-  flake = {
-    nixosModules.default = import ./nixos { inherit inputs; };
-    darwinModules.default = import ./nix-darwin { inherit inputs; };
-    homeModules.default = import ./home-manager { inherit inputs; };
-  };
+  # Module exports are defined in the main flake.nix to avoid duplicate definitions
+  # This file exists as a flake-parts module entry point
 }

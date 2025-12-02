@@ -275,8 +275,8 @@
         "nixpkgs-stable": "nixpkgs-stable"
       },
       "locked": {
-        "lastModified": 1763564394,
-        "narHash": "sha256-I70/1GWQSfGDlYT9FmlTKs1Fj4aKILP0GRE9KZbz+4Y=",
+        "lastModified": 1764568197,
+        "narHash": "sha256-SJTwcZUrk1TUfh2gl5FZnAqPfUTRNAqByTRFSTsWor4=",
         "path": "/Users/gfmio/projects/github/gfmio/nixos-features",
         "type": "path"
       },
@@ -403,7 +403,7 @@
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-25.11",
+        "ref": "nixos-24.05",
         "repo": "nixpkgs",
         "type": "github"
       }

@@ -68,9 +68,9 @@ build_darwin_config() {
     cd ~/nix-modules
 
     # Try to build a darwin configuration
-    # First, check what configurations are available
+    # First, check what configurations are available using nix eval
     local configs
-    configs=$(nix flake show --json 2>/dev/null | jq -r '.darwinConfigurations | keys[]' 2>/dev/null || true)
+    configs=$(nix eval .#darwinConfigurations --apply 'x: builtins.attrNames x' --json 2>/dev/null | jq -r '.[]' 2>/dev/null || true)
 
     if [[ -z "$configs" ]]; then
         log_info "No darwin configurations found in flake, skipping build test"
@@ -95,9 +95,9 @@ test_module_eval() {
 
     cd ~/nix-modules
 
-    # Try to evaluate darwin modules
+    # Try to evaluate darwin modules using nix eval
     local configs
-    configs=$(nix flake show --json 2>/dev/null | jq -r '.darwinConfigurations | keys[]' 2>/dev/null || true)
+    configs=$(nix eval .#darwinConfigurations --apply 'x: builtins.attrNames x' --json 2>/dev/null | jq -r '.[]' 2>/dev/null || true)
 
     if [[ -z "$configs" ]]; then
         log_info "No darwin configurations found, skipping evaluation test"

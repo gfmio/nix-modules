@@ -6,11 +6,13 @@
   networking.computerName = "My Mac";
   networking.localHostName = "my-mac";
 
+  # Primary user for user-specific settings (homebrew, system.defaults, etc.)
+  system.primaryUser = "my-user";
+
   # Nix configuration
   nix = {
     settings = {
       experimental-features = "nix-command flakes";
-      auto-optimise-store = true;
       trusted-users = [ "@admin" "my-user" ];
 
       # Optimize builds
@@ -28,14 +30,14 @@
       ];
     };
 
+    # Store optimization (replaces auto-optimise-store)
+    optimise.automatic = true;
+
     gc = {
       automatic = true;
       interval = { Weekday = 7; };
       options = "--delete-older-than 7d";
     };
-
-    # Enable nix-daemon
-    useDaemon = true;
   };
 
   # nixpkgs config
@@ -147,11 +149,8 @@
   # Programs
   programs.zsh.enable = true;
 
-  # Services
-  services.nix-daemon.enable = true;
-
-  # Security
-  security.pam.enableSudoTouchIdAuth = true;
+  # Security - Touch ID for sudo
+  security.pam.services.sudo_local.touchIdAuth = true;
 
   # System state version
   system.stateVersion = 5;

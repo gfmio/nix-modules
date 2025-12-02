@@ -52,11 +52,9 @@
         shellcheck
       ] ++ lib.optionals stdenv.isLinux [
         nixos-rebuild
-      ] ++ lib.optionals stdenv.isDarwin [
-        darwin-rebuild
-        # Note: tart should be installed via homebrew on macOS
-        # brew install cirruslabs/cli/tart
       ];
+      # Note: darwin-rebuild comes from nix-darwin and is typically installed system-wide
+      # Note: tart should be installed via homebrew on macOS: brew install cirruslabs/cli/tart
 
       shellHook = ''
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

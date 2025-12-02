@@ -11,7 +11,6 @@ inputs.nixpkgs.lib.nixosSystem {
   specialArgs = specialArgs // { inherit inputs self; };
   modules = [
     inputs.home-manager.nixosModules.home-manager
-    inputs.nixos-features.nixosModules.default
     self.nixosModules.default
     {
       networking.hostName = hostname;

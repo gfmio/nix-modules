@@ -6,33 +6,23 @@
     # ./hardware-configuration.nix
   ];
 
-  # Use features from nixos-features
-  features = {
-    # Boot configuration
-    boot.systemd-boot.enable = true;
+  # Boot configuration
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
 
-    # Core system
-    system.kernel.enable = true;
-    core.nix.enable = true;
-
-    # Desktop environment
-    desktop.gnome = {
-      enable = true;
-      wayland = true;
-    };
-
-    # Hardware
-    hardware.audio.enable = true;
-    hardware.bluetooth.enable = true;
-
-    # Networking
-    network.networking.enable = true;
-    network.ssh.enable = true;
+  # Minimal filesystem configuration (override in actual hardware-configuration.nix)
+  fileSystems."/" = {
+    device = "/dev/disk/by-label/nixos";
+    fsType = "ext4";
   };
 
   # System configuration
   networking.hostName = "my-nixos-box";
   time.timeZone = "UTC";
+
+  # Enable basic services
+  services.openssh.enable = true;
+  networking.networkmanager.enable = true;
 
   # User configuration
   users.users.my-user = {
