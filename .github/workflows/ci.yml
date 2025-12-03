@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  check:
-    name: Nix Flake Check
+  ci:
+    name: CI
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -27,89 +27,46 @@ jobs:
         uses: DeterminateSystems/magic-nix-cache-action@v2
 
       - name: Check flake
-        run: nix flake check --all-systems --show-trace
+        # run: nix flake check --all-systems --show-trace
+        run: nix flake check --show-trace
+
+      - name: statix
+        run: statix .
+
+      - name: deadnix
+        run: deadnix .
 
       - name: Check formatting
         run: nix fmt -- --check .
 
-  build-nixos:
-    name: Build NixOS Configuration
-    runs-on: ubuntu-latest
-    needs: check
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v9
-
-      - name: Setup Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@v2
+      # NixOS
 
       - name: Build NixOS configuration
+        if: matrix.os == 'ubuntu-latest'
         run: |
           nix build .#nixosConfigurations.my-nixos-box.config.system.build.toplevel -L
 
-  build-darwin:
-    name: Build Darwin Configuration
-    runs-on: macos-latest
-    needs: check
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v9
-
-      - name: Setup Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@v2
-
-      - name: Build darwin configuration
-        run: |
-          nix build .#darwinConfigurations.my-mac.config.system.build.toplevel -L
-
-  test-nixos:
-    name: Run NixOS Tests
-    runs-on: ubuntu-latest
-    needs: check
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v9
-
-      - name: Setup Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@v2
-
       - name: Run NixOS unit tests
+        if: matrix.os == 'ubuntu-latest'
         run: nix build .#checks.x86_64-linux.eval-test -L
 
       - name: Run NixOS integration tests
+        if: matrix.os == 'ubuntu-latest'
         run: nix build .#checks.x86_64-linux.nixos-integration -L
 
-  test-darwin:
-    name: Run Darwin Tests
-    runs-on: macos-latest
-    needs: check
+      # MacOS
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v9
-
-      - name: Setup Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@v2
+      - name: Build darwin configuration
+        if: matrix.os == 'macos-latest'
+        run: |
+          nix build .#darwinConfigurations.my-mac.config.system.build.toplevel -L
 
       - name: Run darwin unit tests
+        if: matrix.os == 'macos-latest'
         run: nix build .#checks.aarch64-darwin.darwin-eval-test -L
 
       - name: Run darwin integration tests
+        if: matrix.os == 'macos-latest'
         run: nix build .#checks.aarch64-darwin.darwin-integration -L
 
   # Optional: VM testing with tart (requires self-hosted runner with tart installed)
