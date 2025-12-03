@@ -9,7 +9,7 @@
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, nix-darwin }: {
+  outputs = { nix-darwin, ... }: {
     darwinConfigurations.laptop = nix-darwin.lib.darwinSystem {
       system = "aarch64-darwin";
       modules = [ ./darwin-configuration.nix ];

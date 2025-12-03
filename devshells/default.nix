@@ -1,7 +1,7 @@
-{ inputs, ... }:
+{ ... }:
 
 {
-  perSystem = { config, pkgs, system, ... }: {
+  perSystem = { pkgs, lib, ... }: {
     devShells.default = pkgs.mkShell {
       name = "nix-modules-dev";
 

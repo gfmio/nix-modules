@@ -1,4 +1,4 @@
-{ inputs }:
+{ }:
 
 {
   # Shared NixOS configuration

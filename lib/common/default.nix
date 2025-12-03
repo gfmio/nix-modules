@@ -2,7 +2,7 @@
   Common, module-type independent library functions
  */
 
-{ lib, inputs }:
+{ lib, ... }:
 
 {
   # This file aggregates all library functions that are not specific to a

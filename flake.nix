@@ -60,7 +60,7 @@
         ./home
       ];
 
-      perSystem = { config, pkgs, system, ... }: {
+      perSystem = { pkgs, ... }: {
         # Formatter
         formatter = pkgs.nixpkgs-fmt;
 
@@ -148,20 +148,20 @@
 
         # Export custom modules
         nixosModules = {
-          default = import ./modules/nixos { inherit inputs; };
-          common = import ./modules/common { inherit inputs; };
+          default = import ./modules/nixos { };
+          common = import ./modules/common { };
         };
 
         darwinModules = {
-          default = import ./modules/nix-darwin { inherit inputs; };
-          common = import ./modules/common { inherit inputs; };
+          default = import ./modules/nix-darwin { };
+          common = import ./modules/common { };
         };
 
         homeModules = {
-          default = import ./modules/home-manager { inherit inputs; };
-          common = import ./modules/home-manager/common { inherit inputs; };
-          nixos = import ./modules/home-manager/nixos { inherit inputs; };
-          darwin = import ./modules/home-manager/nix-darwin { inherit inputs; };
+          default = import ./modules/home-manager { };
+          common = import ./modules/home-manager/common { };
+          nixos = import ./modules/home-manager/nixos { };
+          darwin = import ./modules/home-manager/nix-darwin { };
         };
 
         # Host configurations
@@ -251,16 +251,13 @@
 
         # Overlays
         overlays = {
-          default = import ./overlays { inherit inputs; };
+          default = import ./overlays { };
         };
 
         # Packages (if any custom packages are added)
         packages = nixpkgs.lib.genAttrs
           (import inputs.systems)
-          (system:
-            let
-              pkgs = nixpkgs.legacyPackages.${system};
-            in
+          (_system:
             {
               # Add custom packages here
             }
