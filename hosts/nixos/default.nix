@@ -1,4 +1,4 @@
-{}:
+_:
 
 {
   # Shared NixOS configuration

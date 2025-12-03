@@ -1,4 +1,4 @@
-{ ... }:
+_:
 
 {
   # This file is imported by flake-parts
