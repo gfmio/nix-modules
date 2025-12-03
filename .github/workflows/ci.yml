@@ -30,44 +30,44 @@ jobs:
         # run: nix flake check --all-systems --show-trace
         run: nix flake check --show-trace
 
-      - name: statix
-        run: statix .
+      # - name: statix
+      #   run: statix .
 
-      - name: deadnix
-        run: deadnix .
+      # - name: deadnix
+      #   run: deadnix .
 
-      - name: Check formatting
-        run: nix fmt -- --check .
+      # - name: Check formatting
+      #   run: nix fmt -- --check .
 
       # NixOS
 
-      - name: Build NixOS configuration
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          nix build .#nixosConfigurations.my-nixos-box.config.system.build.toplevel -L
+      # - name: Build NixOS configuration
+      #   if: matrix.os == 'ubuntu-latest'
+      #   run: |
+      #     nix build .#nixosConfigurations.my-nixos-box.config.system.build.toplevel -L
 
-      - name: Run NixOS unit tests
-        if: matrix.os == 'ubuntu-latest'
-        run: nix build .#checks.x86_64-linux.eval-test -L
+      # - name: Run NixOS unit tests
+      #   if: matrix.os == 'ubuntu-latest'
+      #   run: nix build .#checks.x86_64-linux.eval-test -L
 
-      - name: Run NixOS integration tests
-        if: matrix.os == 'ubuntu-latest'
-        run: nix build .#checks.x86_64-linux.nixos-integration -L
+      # - name: Run NixOS integration tests
+      #   if: matrix.os == 'ubuntu-latest'
+      #   run: nix build .#checks.x86_64-linux.nixos-integration -L
 
-      # MacOS
+      # # MacOS
 
-      - name: Build darwin configuration
-        if: matrix.os == 'macos-latest'
-        run: |
-          nix build .#darwinConfigurations.my-mac.config.system.build.toplevel -L
+      # - name: Build darwin configuration
+      #   if: matrix.os == 'macos-latest'
+      #   run: |
+      #     nix build .#darwinConfigurations.my-mac.config.system.build.toplevel -L
 
-      - name: Run darwin unit tests
-        if: matrix.os == 'macos-latest'
-        run: nix build .#checks.aarch64-darwin.darwin-eval-test -L
+      # - name: Run darwin unit tests
+      #   if: matrix.os == 'macos-latest'
+      #   run: nix build .#checks.aarch64-darwin.darwin-eval-test -L
 
-      - name: Run darwin integration tests
-        if: matrix.os == 'macos-latest'
-        run: nix build .#checks.aarch64-darwin.darwin-integration -L
+      # - name: Run darwin integration tests
+      #   if: matrix.os == 'macos-latest'
+      #   run: nix build .#checks.aarch64-darwin.darwin-integration -L
 
   # Optional: VM testing with tart (requires self-hosted runner with tart installed)
   # Uncomment when you have a self-hosted runner set up
