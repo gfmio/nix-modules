@@ -6,8 +6,58 @@
   networking.computerName = "My Mac";
   networking.localHostName = "my-mac";
 
-  # Primary user for user-specific settings (homebrew, system.defaults, etc.)
-  system.primaryUser = "my-user";
+  system = {
+    # Primary user for user-specific settings (homebrew, system.defaults, etc.)
+    primaryUser = "my-user";
+
+    # macOS system defaults
+    defaults = {
+      dock = {
+        autohide = true;
+        mru-spaces = false;
+        minimize-to-application = true;
+        show-recents = false;
+      };
+
+      finder = {
+        AppleShowAllExtensions = true;
+        AppleShowAllFiles = false;
+        CreateDesktop = false;
+        FXEnableExtensionChangeWarning = false;
+        FXPreferredViewStyle = "Nlsv";
+        ShowPathbar = true;
+        ShowStatusBar = true;
+      };
+
+      NSGlobalDomain = {
+        AppleShowAllExtensions = true;
+        AppleShowScrollBars = "WhenScrolling";
+        NSAutomaticCapitalizationEnabled = false;
+        NSAutomaticDashSubstitutionEnabled = false;
+        NSAutomaticPeriodSubstitutionEnabled = false;
+        NSAutomaticQuoteSubstitutionEnabled = false;
+        NSAutomaticSpellingCorrectionEnabled = false;
+        NSNavPanelExpandedStateForSaveMode = true;
+        NSNavPanelExpandedStateForSaveMode2 = true;
+        "com.apple.swipescrolldirection" = false;
+      };
+
+      trackpad = {
+        Clicking = true;
+        TrackpadRightClick = true;
+        TrackpadThreeFingerDrag = false;
+      };
+    };
+
+    # Keyboard settings
+    keyboard = {
+      enableKeyMapping = true;
+      remapCapsLockToControl = true;
+    };
+
+    # System state version
+    stateVersion = 5;
+  };
 
   # Nix configuration
   nix = {
@@ -94,51 +144,6 @@
     };
   };
 
-  # macOS system defaults
-  system.defaults = {
-    dock = {
-      autohide = true;
-      mru-spaces = false;
-      minimize-to-application = true;
-      show-recents = false;
-    };
-
-    finder = {
-      AppleShowAllExtensions = true;
-      AppleShowAllFiles = false;
-      CreateDesktop = false;
-      FXEnableExtensionChangeWarning = false;
-      FXPreferredViewStyle = "Nlsv";
-      ShowPathbar = true;
-      ShowStatusBar = true;
-    };
-
-    NSGlobalDomain = {
-      AppleShowAllExtensions = true;
-      AppleShowScrollBars = "WhenScrolling";
-      NSAutomaticCapitalizationEnabled = false;
-      NSAutomaticDashSubstitutionEnabled = false;
-      NSAutomaticPeriodSubstitutionEnabled = false;
-      NSAutomaticQuoteSubstitutionEnabled = false;
-      NSAutomaticSpellingCorrectionEnabled = false;
-      NSNavPanelExpandedStateForSaveMode = true;
-      NSNavPanelExpandedStateForSaveMode2 = true;
-      "com.apple.swipescrolldirection" = false;
-    };
-
-    trackpad = {
-      Clicking = true;
-      TrackpadRightClick = true;
-      TrackpadThreeFingerDrag = false;
-    };
-  };
-
-  # Keyboard settings
-  system.keyboard = {
-    enableKeyMapping = true;
-    remapCapsLockToControl = true;
-  };
-
   # User configuration
   users.users.my-user = {
     home = "/Users/my-user";
@@ -151,7 +156,4 @@
 
   # Security - Touch ID for sudo
   security.pam.services.sudo_local.touchIdAuth = true;
-
-  # System state version
-  system.stateVersion = 5;
 }

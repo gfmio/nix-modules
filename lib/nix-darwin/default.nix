@@ -24,8 +24,7 @@
   mkHomebrew = { enable ? true, taps ? [ ], brews ? [ ], casks ? [ ], masApps ? { } }:
     {
       homebrew = {
-        inherit enable taps brews casks;
-        masApps = masApps;
+        inherit enable taps brews casks masApps;
         onActivation.cleanup = lib.mkDefault "zap";
       };
     };

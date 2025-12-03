@@ -9,28 +9,33 @@
   };
 
   # Git configuration
-  programs.git = {
-    enable = true;
-    userName = "My Name";
-    userEmail = "me@example.com";
+  programs = {
+    # Let home-manager manage itself
+    home-manager.enable = true;
 
-    extraConfig = {
-      init.defaultBranch = "main";
-      pull.rebase = true;
-      push.autoSetupRemote = true;
+    git = {
+      enable = true;
+      userName = "My Name";
+      userEmail = "me@example.com";
+
+      extraConfig = {
+        init.defaultBranch = "main";
+        pull.rebase = true;
+        push.autoSetupRemote = true;
+      };
     };
-  };
 
-  # Shell configuration
-  programs.zsh = {
-    enable = true;
-    enableCompletion = true;
-    autosuggestion.enable = true;
-    syntaxHighlighting.enable = true;
+    # Shell configuration
+    zsh = {
+      enable = true;
+      enableCompletion = true;
+      autosuggestion.enable = true;
+      syntaxHighlighting.enable = true;
 
-    shellAliases = {
-      ll = "ls -la";
-      ".." = "cd ..";
+      shellAliases = {
+        ll = "ls -la";
+        ".." = "cd ..";
+      };
     };
   };
 
@@ -49,7 +54,4 @@
     gh
     direnv
   ];
-
-  # Let home-manager manage itself
-  programs.home-manager.enable = true;
 }
