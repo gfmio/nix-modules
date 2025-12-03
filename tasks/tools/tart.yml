@@ -1,0 +1,400 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for tart VM management tasks
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+vars:
+  # Base image names (macOS from registry, NixOS must be created locally)
+  MACOS_CLEAN_IMAGE: '{{.MACOS_CLEAN_IMAGE | default "ghcr.io/cirruslabs/macos-tahoe-base:latest"}}'
+  # NixOS clean image - must be created locally from ISO (no registry image available)
+  NIXOS_CLEAN_IMAGE: '{{.NIXOS_CLEAN_IMAGE | default "nixos-clean"}}'
+  # Test base image names (with nix/tools pre-installed)
+  MACOS_NIX_BASE: '{{.MACOS_NIX_BASE | default "macos-nix-base"}}'
+  NIXOS_NIX_BASE: '{{.NIXOS_NIX_BASE | default "nixos-nix-base"}}'
+  # Script paths
+  SCRIPTS_DIR: '{{.ROOT_DIR}}/scripts/vm'
+  # NixOS ISO URL (aarch64 for Apple Silicon)
+  NIXOS_ISO_URL: '{{.NIXOS_ISO_URL | default "https://channels.nixos.org/nixos-25.11/latest-nixos-minimal-aarch64-linux.iso"}}'
+
+tasks:
+  # === Setup and Prerequisites ===
+
+  tart:check:
+    desc: Check if tart is available
+    platforms: [darwin]
+    silent: true
+    cmds:
+      - |
+        if ! command -v tart &> /dev/null; then
+          echo "tart not found. Install it with: brew install cirruslabs/cli/tart"
+          exit 1
+        fi
+        echo "tart is installed: $(tart --version)"
+
+  # === Image Management ===
+
+  tart:list:
+    desc: List all tart VM images
+    platforms: [darwin]
+    deps: [tart:check]
+    cmds:
+      - tart list
+
+  tart:pull:macos:
+    desc: Pull the clean macOS base image from registry
+    platforms: [darwin]
+    deps: [tart:check]
+    cmds:
+      - echo "Pulling macOS base image..."
+      - tart pull {{.MACOS_CLEAN_IMAGE}}
+
+  tart:pull:
+    desc: Pull base images from registry (macOS only - NixOS must be created locally)
+    platforms: [darwin]
+    deps:
+      - tart:pull:macos
+
+  # === NixOS Base Image Creation (from ISO) ===
+
+  tart:create:nixos:
+    desc: Create NixOS clean base image from ISO (interactive installation required)
+    platforms: [darwin]
+    deps: [tart:check]
+    cmds:
+      - echo "=== NixOS VM Creation ==="
+      - echo ""
+      - echo "This will create a new NixOS VM from the minimal ISO."
+      - echo "You will need to complete the installation manually."
+      - echo ""
+      - |
+        # Check if image already exists
+        if tart list | grep -q "^{{.NIXOS_CLEAN_IMAGE}}[[:space:]]"; then
+          echo "Image '{{.NIXOS_CLEAN_IMAGE}}' already exists."
+          echo "Delete it first with: task tart:delete VM_NAME={{.NIXOS_CLEAN_IMAGE}}"
+          exit 1
+        fi
+
+        # Download ISO if not present
+        ISO_PATH="/tmp/nixos-minimal-aarch64.iso"
+        if [[ ! -f "$ISO_PATH" ]]; then
+          echo "Downloading NixOS ISO..."
+          curl -L -o "$ISO_PATH" "{{.NIXOS_ISO_URL}}"
+        else
+          echo "Using cached ISO: $ISO_PATH"
+        fi
+
+        # Create VM
+        echo "Creating VM..."
+        tart create --linux --disk-size 50 {{.NIXOS_CLEAN_IMAGE}}
+
+        echo ""
+        echo "=== Starting VM with ISO attached ==="
+        echo ""
+        echo "Complete the NixOS installation in the VM window."
+        echo "Recommended installation steps:"
+        echo "  1. sudo -i"
+        echo "  2. parted /dev/vda -- mklabel gpt"
+        echo "  3. parted /dev/vda -- mkpart root ext4 512MB 100%"
+        echo "  4. parted /dev/vda -- mkpart ESP fat32 1MB 512MB"
+        echo "  5. parted /dev/vda -- set 2 esp on"
+        echo "  6. mkfs.ext4 -L nixos /dev/vda1"
+        echo "  7. mkfs.fat -F 32 -n boot /dev/vda2"
+        echo "  8. mount /dev/disk/by-label/nixos /mnt"
+        echo "  9. mkdir -p /mnt/boot && mount /dev/disk/by-label/boot /mnt/boot"
+        echo "  10. nixos-generate-config --root /mnt"
+        echo "  11. Edit /mnt/etc/nixos/configuration.nix to enable SSH and set user"
+        echo "  12. nixos-install"
+        echo "  13. reboot"
+        echo ""
+        echo "After installation, shut down the VM to save the base image."
+        echo ""
+
+        # Run with ISO
+        tart run --disk "$ISO_PATH" {{.NIXOS_CLEAN_IMAGE}}
+
+        echo ""
+        echo "VM shut down. Base image '{{.NIXOS_CLEAN_IMAGE}}' is ready."
+
+  tart:create:nixos:auto:
+    desc: Create NixOS clean base image with automated installation (VNC script)
+    platforms: [darwin]
+    deps: [tart:check]
+    cmds:
+      - |
+        VM_NAME="{{.NIXOS_CLEAN_IMAGE}}" \
+        ISO_URL="{{.NIXOS_ISO_URL}}" \
+        {{.SCRIPTS_DIR}}/nixos-create-base.sh
+
+  tart:create:nixos:packer:
+    desc: Create NixOS clean base image with Packer (recommended)
+    platforms: [darwin]
+    cmds:
+      - task: packer:build:nixos
+
+  # === Base Image Creation ===
+
+  tart:base:macos:
+    desc: Create macOS test base image (with nix pre-installed)
+    platforms: [darwin]
+    deps: [tart:check]
+    vars:
+      TEMP_VM: 'macos-setup-temp-{{.TIMESTAMP}}'
+      TIMESTAMP:
+        sh: date +%s
+    cmds:
+      - echo "Creating macOS test base image..."
+      - |
+        # Clone clean image to temp
+        tart clone {{.MACOS_CLEAN_IMAGE}} {{.TEMP_VM}}
+
+        # Start VM in background
+        tart run {{.TEMP_VM}} --no-graphics &
+        TART_PID=$!
+
+        # Wait for SSH
+        echo "Waiting for VM to boot..."
+        for i in $(seq 1 60); do
+          VM_IP=$(tart ip {{.TEMP_VM}} 2>/dev/null || true)
+          if [[ -n "$VM_IP" ]]; then
+            if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 admin@$VM_IP "exit 0" 2>/dev/null; then
+              break
+            fi
+          fi
+          sleep 5
+        done
+
+        if [[ -z "$VM_IP" ]]; then
+          echo "Failed to get VM IP"
+          kill $TART_PID 2>/dev/null || true
+          tart delete {{.TEMP_VM}} 2>/dev/null || true
+          exit 1
+        fi
+
+        # Copy and run setup script
+        scp -o StrictHostKeyChecking=no {{.SCRIPTS_DIR}}/macos-setup-base.sh admin@$VM_IP:~/setup.sh
+        ssh -o StrictHostKeyChecking=no admin@$VM_IP "chmod +x ~/setup.sh && ~/setup.sh"
+
+        # Shutdown VM
+        ssh -o StrictHostKeyChecking=no admin@$VM_IP "sudo shutdown -h now" || true
+        sleep 10
+        kill $TART_PID 2>/dev/null || true
+        wait $TART_PID 2>/dev/null || true
+
+        # Delete old base if exists and rename temp to base
+        tart delete {{.MACOS_NIX_BASE}} 2>/dev/null || true
+        tart clone {{.TEMP_VM}} {{.MACOS_NIX_BASE}}
+        tart delete {{.TEMP_VM}}
+
+        echo "macOS test base image created: {{.MACOS_NIX_BASE}}"
+
+  tart:base:nixos:
+    desc: Create NixOS test base image (with tools pre-installed)
+    platforms: [darwin]
+    deps: [tart:check]
+    vars:
+      TEMP_VM: 'nixos-setup-temp-{{.TIMESTAMP}}'
+      TIMESTAMP:
+        sh: date +%s
+    cmds:
+      - echo "Creating NixOS test base image..."
+      - |
+        # Check if clean image exists
+        if ! tart list | grep -q "^{{.NIXOS_CLEAN_IMAGE}}[[:space:]]"; then
+          echo "Error: NixOS clean base image '{{.NIXOS_CLEAN_IMAGE}}' not found."
+          echo "Create it first with: task tart:create:nixos"
+          exit 1
+        fi
+
+        # Clone clean image to temp
+        tart clone {{.NIXOS_CLEAN_IMAGE}} {{.TEMP_VM}}
+
+        # Start VM in background
+        tart run {{.TEMP_VM}} --no-graphics &
+        TART_PID=$!
+
+        # Wait for SSH
+        echo "Waiting for VM to boot..."
+        VM_IP=""
+        for i in $(seq 1 60); do
+          VM_IP=$(tart ip {{.TEMP_VM}} 2>/dev/null || true)
+          if [[ -n "$VM_IP" ]]; then
+            if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 nixos@$VM_IP "exit 0" 2>/dev/null; then
+              break
+            fi
+          fi
+          sleep 5
+        done
+
+        if [[ -z "$VM_IP" ]]; then
+          echo "Failed to get VM IP"
+          kill $TART_PID 2>/dev/null || true
+          tart delete {{.TEMP_VM}} 2>/dev/null || true
+          exit 1
+        fi
+
+        # Copy and run setup script
+        scp -o StrictHostKeyChecking=no {{.SCRIPTS_DIR}}/nixos-setup-base.sh nixos@$VM_IP:~/setup.sh
+        ssh -o StrictHostKeyChecking=no nixos@$VM_IP "chmod +x ~/setup.sh && ~/setup.sh"
+
+        # Shutdown VM
+        ssh -o StrictHostKeyChecking=no nixos@$VM_IP "sudo shutdown -h now" || true
+        sleep 10
+        kill $TART_PID 2>/dev/null || true
+        wait $TART_PID 2>/dev/null || true
+
+        # Delete old base if exists and rename temp to base
+        tart delete {{.NIXOS_NIX_BASE}} 2>/dev/null || true
+        tart clone {{.TEMP_VM}} {{.NIXOS_NIX_BASE}}
+        tart delete {{.TEMP_VM}}
+
+        echo "NixOS test base image created: {{.NIXOS_NIX_BASE}}"
+
+  tart:base:
+    desc: Create all test base images (requires nixos-clean to exist)
+    platforms: [darwin]
+    cmds:
+      - task: tart:base:macos
+      - task: tart:base:nixos
+
+  # === Test Running ===
+
+  tart:test:darwin:
+    desc: Run darwin tests in a macOS VM
+    platforms: [darwin]
+    deps: [tart:check]
+    cmds:
+      - |
+        # Check if base image exists (grep for name in second column)
+        if ! tart list 2>/dev/null | awk '{print $2}' | grep -q "^{{.MACOS_NIX_BASE}}$"; then
+          echo "Error: macOS base image '{{.MACOS_NIX_BASE}}' not found."
+          echo "Create it with: task packer:build:macos"
+          exit 1
+        fi
+        VM_USER=admin VM_PASSWORD=admin USE_BRIDGED=true {{.SCRIPTS_DIR}}/test-runner.sh -c {{.ROOT_DIR}} -u admin {{.MACOS_NIX_BASE}} "{{.ROOT_DIR}}/tests/vm/darwin-test.sh"
+
+  tart:test:nixos:
+    desc: Run NixOS tests in a NixOS VM
+    platforms: [darwin]
+    deps: [tart:check]
+    cmds:
+      - |
+        # Check if base image exists (grep for name in second column)
+        if ! tart list 2>/dev/null | awk '{print $2}' | grep -q "^{{.NIXOS_CLEAN_IMAGE}}$"; then
+          echo "Error: NixOS base image '{{.NIXOS_CLEAN_IMAGE}}' not found."
+          echo "Create it with: task packer:build:nixos"
+          exit 1
+        fi
+        VM_USER=nixos VM_PASSWORD=nixos USE_BRIDGED=true {{.SCRIPTS_DIR}}/test-runner.sh -c {{.ROOT_DIR}} -u nixos {{.NIXOS_CLEAN_IMAGE}} "{{.ROOT_DIR}}/tests/vm/nixos-test.sh"
+
+  tart:test:
+    desc: Run tests in both darwin and NixOS VMs
+    platforms: [darwin]
+    cmds:
+      - task: tart:test:darwin
+      - task: tart:test:nixos
+
+  # === VM Lifecycle ===
+
+  tart:run:
+    desc: Run a VM interactively (VM_NAME required)
+    platforms: [darwin]
+    deps: [tart:check]
+    requires:
+      vars: [VM_NAME]
+    cmds:
+      - tart run {{.VM_NAME}}
+
+  tart:stop:
+    desc: Stop a running VM (VM_NAME required)
+    platforms: [darwin]
+    deps: [tart:check]
+    requires:
+      vars: [VM_NAME]
+    cmds:
+      - tart stop {{.VM_NAME}}
+
+  tart:delete:
+    desc: Delete a VM (VM_NAME required)
+    platforms: [darwin]
+    deps: [tart:check]
+    requires:
+      vars: [VM_NAME]
+    cmds:
+      - tart delete {{.VM_NAME}}
+
+  tart:ip:
+    desc: Get the IP address of a running VM (VM_NAME required)
+    platforms: [darwin]
+    deps: [tart:check]
+    requires:
+      vars: [VM_NAME]
+    cmds:
+      - tart ip {{.VM_NAME}}
+
+  # === Cleanup ===
+
+  tart:clean:test:
+    desc: Delete all temporary test VMs
+    platforms: [darwin]
+    deps: [tart:check]
+    cmds:
+      - |
+        echo "Cleaning up test VMs..."
+        for vm in $(tart list | grep -E '\-test\-[0-9]+' | awk '{print $1}'); do
+          echo "Deleting $vm..."
+          tart delete "$vm" 2>/dev/null || true
+        done
+        echo "Test VMs cleaned up"
+
+  tart:clean:base:
+    desc: Delete test base images
+    platforms: [darwin]
+    deps: [tart:check]
+    cmds:
+      - echo "Deleting test base images..."
+      - tart delete {{.MACOS_NIX_BASE}} 2>/dev/null || echo "{{.MACOS_NIX_BASE}} not found"
+      - tart delete {{.NIXOS_NIX_BASE}} 2>/dev/null || echo "{{.NIXOS_NIX_BASE}} not found"
+      - echo "Base images deleted"
+
+  tart:clean:
+    desc: Delete all test VMs and base images
+    platforms: [darwin]
+    cmds:
+      - task: tart:clean:test
+      - task: tart:clean:base
+
+  # === Info ===
+
+  tart:info:
+    desc: Show tart VM testing information
+    platforms: [darwin]
+    silent: true
+    cmds:
+      - |
+        echo "=== Tart VM Testing ==="
+        echo ""
+        echo "Base Images (built with Packer):"
+        echo "  macOS with Nix:     {{.MACOS_NIX_BASE}}"
+        echo "  NixOS:              {{.NIXOS_CLEAN_IMAGE}}"
+        echo ""
+        echo "Recommended Workflow (using Packer):"
+        echo "  1. task packer:build:macos  # Build macOS with Nix"
+        echo "  2. task packer:build:nixos  # Build NixOS from ISO"
+        echo "  3. task tart:test:darwin    # Run darwin tests"
+        echo "  4. task tart:test:nixos     # Run NixOS tests"
+        echo "  5. task tart:test           # Run both"
+        echo ""
+        echo "Alternative Workflow (manual setup):"
+        echo "  1. task tart:pull:macos     # Pull clean macOS from registry"
+        echo "  2. task tart:base:macos     # Run setup script"
+        echo "  3. task tart:create:nixos   # Create NixOS from ISO (interactive)"
+        echo "  4. task tart:base:nixos     # Run setup script"
+        echo ""
+        echo "Test commands:"
+        echo "  task tart:test:darwin       # Run darwin VM tests"
+        echo "  task tart:test:nixos        # Run NixOS VM tests"
+        echo "  task tart:test              # Run all VM tests"
+        echo ""
+        echo "Current VMs:"
+        tart list 2>/dev/null || echo "  (tart not available)"

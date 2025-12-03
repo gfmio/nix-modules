@@ -1,0 +1,272 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for Packer VM image building
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+vars:
+  PACKER_DIR: '{{.ROOT_DIR}}/packer'
+  # NixOS settings
+  NIXOS_ISO_URL: '{{.NIXOS_ISO_URL | default "https://channels.nixos.org/nixos-24.11/latest-nixos-minimal-aarch64-linux.iso"}}'
+  NIXOS_ISO_PATH: '{{.NIXOS_ISO_PATH | default "/tmp/nixos-minimal-aarch64.iso"}}'
+  NIXOS_VM_NAME: '{{.NIXOS_VM_NAME | default "nixos-clean"}}'
+  # macOS settings
+  MACOS_BASE_IMAGE: '{{.MACOS_BASE_IMAGE | default "ghcr.io/cirruslabs/macos-tahoe-base:latest"}}'
+  MACOS_VM_NAME: '{{.MACOS_VM_NAME | default "macos-nix-base"}}'
+  # Networking - bridged is recommended due to NAT issues on macOS
+  PACKER_USE_BRIDGED: '{{.PACKER_USE_BRIDGED | default "true"}}'
+  PACKER_BRIDGED_NIC: '{{.PACKER_BRIDGED_NIC | default "en0"}}'
+
+tasks:
+  # === Prerequisites ===
+
+  packer:check:
+    desc: Check if packer is available
+    silent: true
+    cmds:
+      - |
+        if ! command -v packer &> /dev/null; then
+          echo "packer not found. Install it with: brew tap hashicorp/tap && brew install hashicorp/tap/packer"
+          exit 1
+        fi
+        echo "packer is installed: $(packer --version)"
+
+  packer:init:
+    desc: Initialize Packer plugins
+    deps: [packer:check]
+    cmds:
+      - packer init {{.PACKER_DIR}}/nixos.pkr.hcl
+      - packer init {{.PACKER_DIR}}/macos-nix.pkr.hcl
+
+  # === ISO Management ===
+
+  packer:iso:download:
+    desc: Download NixOS ISO for Packer builds
+    cmds:
+      - |
+        if [[ -f "{{.NIXOS_ISO_PATH}}" ]]; then
+          echo "ISO already exists: {{.NIXOS_ISO_PATH}}"
+        else
+          echo "Downloading NixOS ISO..."
+          curl -L -o "{{.NIXOS_ISO_PATH}}" "{{.NIXOS_ISO_URL}}"
+          echo "Download complete"
+        fi
+
+  packer:iso:clean:
+    desc: Remove cached NixOS ISO
+    cmds:
+      - rm -f "{{.NIXOS_ISO_PATH}}"
+      - echo "ISO removed"
+
+  # === Build Commands ===
+
+  packer:validate:
+    desc: Validate Packer configuration
+    deps: [packer:init]
+    cmds:
+      - |
+        echo "Validating NixOS config..."
+        packer validate {{.PACKER_DIR}}/nixos.pkr.hcl
+        echo "Validating macOS config..."
+        packer validate {{.PACKER_DIR}}/macos-nix.pkr.hcl
+        echo "All configurations valid"
+
+  packer:build:nixos:
+    desc: Build NixOS base image with Packer
+    platforms: [darwin]
+    deps:
+      - packer:init
+      - packer:iso:download
+    cmds:
+      - |
+        # Check if VM already exists
+        if tart list 2>/dev/null | grep -q "^{{.NIXOS_VM_NAME}}[[:space:]]"; then
+          echo "VM '{{.NIXOS_VM_NAME}}' already exists."
+          echo "Delete it first with: task tart:delete VM_NAME={{.NIXOS_VM_NAME}}"
+          exit 1
+        fi
+
+        packer build \
+          -var "vm_name={{.NIXOS_VM_NAME}}" \
+          -var "iso_path={{.NIXOS_ISO_PATH}}" \
+          -var "iso_url={{.NIXOS_ISO_URL}}" \
+          -var "use_bridged={{.PACKER_USE_BRIDGED}}" \
+          -var "bridged_nic={{.PACKER_BRIDGED_NIC}}" \
+          {{.PACKER_DIR}}/nixos.pkr.hcl
+
+  packer:build:nixos:debug:
+    desc: Build NixOS base image with debug output
+    platforms: [darwin]
+    deps:
+      - packer:init
+      - packer:iso:download
+    cmds:
+      - |
+        # Check if VM already exists
+        if tart list 2>/dev/null | grep -q "^{{.NIXOS_VM_NAME}}[[:space:]]"; then
+          echo "VM '{{.NIXOS_VM_NAME}}' already exists."
+          echo "Delete it first with: task tart:delete VM_NAME={{.NIXOS_VM_NAME}}"
+          exit 1
+        fi
+
+        PACKER_LOG=1 packer build \
+          -var "vm_name={{.NIXOS_VM_NAME}}" \
+          -var "iso_path={{.NIXOS_ISO_PATH}}" \
+          -var "iso_url={{.NIXOS_ISO_URL}}" \
+          -var "use_bridged={{.PACKER_USE_BRIDGED}}" \
+          -var "bridged_nic={{.PACKER_BRIDGED_NIC}}" \
+          {{.PACKER_DIR}}/nixos.pkr.hcl
+
+  packer:build:nixos:gui:
+    desc: Build NixOS base image with GUI (for debugging)
+    platforms: [darwin]
+    deps:
+      - packer:init
+      - packer:iso:download
+    cmds:
+      - |
+        # Check if VM already exists
+        if tart list 2>/dev/null | grep -q "^{{.NIXOS_VM_NAME}}[[:space:]]"; then
+          echo "VM '{{.NIXOS_VM_NAME}}' already exists."
+          echo "Delete it first with: task tart:delete VM_NAME={{.NIXOS_VM_NAME}}"
+          exit 1
+        fi
+
+        packer build \
+          -var "vm_name={{.NIXOS_VM_NAME}}" \
+          -var "iso_path={{.NIXOS_ISO_PATH}}" \
+          -var "iso_url={{.NIXOS_ISO_URL}}" \
+          -var "use_bridged={{.PACKER_USE_BRIDGED}}" \
+          -var "bridged_nic={{.PACKER_BRIDGED_NIC}}" \
+          -var "headless=false" \
+          {{.PACKER_DIR}}/nixos.pkr.hcl
+
+  packer:build:nixos:nat:
+    desc: Build NixOS base image with NAT networking (may not have internet)
+    platforms: [darwin]
+    deps:
+      - packer:init
+      - packer:iso:download
+    cmds:
+      - |
+        # Check if VM already exists
+        if tart list 2>/dev/null | grep -q "^{{.NIXOS_VM_NAME}}[[:space:]]"; then
+          echo "VM '{{.NIXOS_VM_NAME}}' already exists."
+          echo "Delete it first with: task tart:delete VM_NAME={{.NIXOS_VM_NAME}}"
+          exit 1
+        fi
+
+        packer build \
+          -var "vm_name={{.NIXOS_VM_NAME}}" \
+          -var "iso_path={{.NIXOS_ISO_PATH}}" \
+          -var "iso_url={{.NIXOS_ISO_URL}}" \
+          -var "use_bridged=false" \
+          {{.PACKER_DIR}}/nixos.pkr.hcl
+
+  # === macOS Build Commands ===
+
+  packer:build:macos:
+    desc: Build macOS base image with Nix installed
+    platforms: [darwin]
+    deps:
+      - packer:init
+    cmds:
+      - |
+        # Check if VM already exists
+        if tart list 2>/dev/null | grep -q "^{{.MACOS_VM_NAME}}[[:space:]]"; then
+          echo "VM '{{.MACOS_VM_NAME}}' already exists."
+          echo "Delete it first with: task tart:delete VM_NAME={{.MACOS_VM_NAME}}"
+          exit 1
+        fi
+
+        packer build \
+          -var "vm_name={{.MACOS_VM_NAME}}" \
+          -var "base_image={{.MACOS_BASE_IMAGE}}" \
+          -var "use_bridged={{.PACKER_USE_BRIDGED}}" \
+          -var "bridged_nic={{.PACKER_BRIDGED_NIC}}" \
+          {{.PACKER_DIR}}/macos-nix.pkr.hcl
+
+  packer:build:macos:debug:
+    desc: Build macOS base image with debug output
+    platforms: [darwin]
+    deps:
+      - packer:init
+    cmds:
+      - |
+        # Check if VM already exists
+        if tart list 2>/dev/null | grep -q "^{{.MACOS_VM_NAME}}[[:space:]]"; then
+          echo "VM '{{.MACOS_VM_NAME}}' already exists."
+          echo "Delete it first with: task tart:delete VM_NAME={{.MACOS_VM_NAME}}"
+          exit 1
+        fi
+
+        PACKER_LOG=1 packer build \
+          -var "vm_name={{.MACOS_VM_NAME}}" \
+          -var "base_image={{.MACOS_BASE_IMAGE}}" \
+          -var "use_bridged={{.PACKER_USE_BRIDGED}}" \
+          -var "bridged_nic={{.PACKER_BRIDGED_NIC}}" \
+          {{.PACKER_DIR}}/macos-nix.pkr.hcl
+
+  packer:build:macos:nat:
+    desc: Build macOS base image with NAT networking (may not have internet)
+    platforms: [darwin]
+    deps:
+      - packer:init
+    cmds:
+      - |
+        # Check if VM already exists
+        if tart list 2>/dev/null | grep -q "^{{.MACOS_VM_NAME}}[[:space:]]"; then
+          echo "VM '{{.MACOS_VM_NAME}}' already exists."
+          echo "Delete it first with: task tart:delete VM_NAME={{.MACOS_VM_NAME}}"
+          exit 1
+        fi
+
+        packer build \
+          -var "vm_name={{.MACOS_VM_NAME}}" \
+          -var "base_image={{.MACOS_BASE_IMAGE}}" \
+          -var "use_bridged=false" \
+          {{.PACKER_DIR}}/macos-nix.pkr.hcl
+
+  # === Info ===
+
+  packer:info:
+    desc: Show Packer build information
+    silent: true
+    cmds:
+      - |
+        echo "=== Packer VM Building ==="
+        echo ""
+        echo "Configuration directory: {{.PACKER_DIR}}"
+        echo ""
+        echo "NixOS Settings:"
+        echo "  ISO URL:  {{.NIXOS_ISO_URL}}"
+        echo "  ISO Path: {{.NIXOS_ISO_PATH}}"
+        echo "  VM Name:  {{.NIXOS_VM_NAME}}"
+        echo ""
+        echo "macOS Settings:"
+        echo "  Base Image: {{.MACOS_BASE_IMAGE}}"
+        echo "  VM Name:    {{.MACOS_VM_NAME}}"
+        echo ""
+        echo "Networking (bridged recommended - NAT has issues on macOS):"
+        echo "  Use Bridged:  {{.PACKER_USE_BRIDGED}}"
+        echo "  Bridged NIC:  {{.PACKER_BRIDGED_NIC}}"
+        echo ""
+        echo "NixOS Commands:"
+        echo "  task packer:build:nixos       # Build NixOS base image (bridged)"
+        echo "  task packer:build:nixos:nat   # Build with NAT (may not have internet)"
+        echo "  task packer:build:nixos:gui   # Build with GUI (debugging)"
+        echo "  task packer:build:nixos:debug # Build with verbose logging"
+        echo ""
+        echo "macOS Commands:"
+        echo "  task packer:build:macos       # Build macOS with Nix (bridged)"
+        echo "  task packer:build:macos:nat   # Build with NAT (may not have internet)"
+        echo "  task packer:build:macos:debug # Build with verbose logging"
+        echo ""
+        echo "General Commands:"
+        echo "  task packer:validate          # Validate configuration"
+        echo "  task packer:iso:download      # Download NixOS ISO"
+        echo "  task packer:iso:clean         # Remove cached ISO"
+        echo ""
+        echo "Override networking:"
+        echo "  PACKER_USE_BRIDGED=false task packer:build:nixos  # Use NAT"
+        echo "  PACKER_BRIDGED_NIC=en1 task packer:build:nixos    # Use different NIC"

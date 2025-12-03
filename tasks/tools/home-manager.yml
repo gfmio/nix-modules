@@ -1,0 +1,63 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for all home-manager tasks
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+tasks:
+  home-manager:build:my-user@my-nixos-box:
+    desc: Build my-user@my-nixos-box home-manager configuration
+    sources:
+      - 'home/**/*.nix'
+      - 'modules/home-manager/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "🏗️  Building my-user@my-nixos-box home-manager configuration..."
+      - nix build .#homeConfigurations."my-user@my-nixos-box".activationPackage -L
+      - echo "✅ my-user@my-nixos-box home-manager configuration built!"
+
+  home-manager:build:my-user@my-mac:
+    desc: Build my-user@my-mac home-manager configuration
+    platforms: [darwin]
+    sources:
+      - 'home/**/*.nix'
+      - 'modules/home-manager/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "🏗️  Building my-user@my-mac home-manager configuration..."
+      - nix build .#homeConfigurations."my-user@my-mac".activationPackage -L
+      - echo "✅ my-user@my-mac home-manager configuration built!"
+
+  home-manager:build:*:
+    desc: Build a home-manager configuration
+    vars:
+      NAME: '{{index .MATCH 0}}'
+    sources:
+      - 'home/**/*.nix'
+      - 'modules/home-manager/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "🏗️  Building {{.NAME}} home-manager configuration..."
+      - nix build .#homeConfigurations."{{.NAME}}".activationPackage -L
+      - echo "✅ {{.NAME}} home-manager configuration built!"
+
+  home-manager:build:all:
+    desc: Build all home-manager configurations
+    aliases:
+      - home-manager:build
+    sources:
+      - 'home/**/*.nix'
+      - 'modules/home-manager/**/*.nix'
+      - 'flake.nix'
+      - 'flake.lock'
+    cmds:
+      - echo "🏗️  Building all home-manager configurations..."
+      - task: home-manager:build:my-user@my-nixos-box
+      - |
+        if [ "$(uname)" = "Darwin" ]; then
+          task home-manager:build:my-user@my-mac
+        fi
+      - echo "✅ All home-manager configurations built!"

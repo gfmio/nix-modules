@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for all statix tasks
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+tasks:
+  statix:setup:check:
+    desc: Check if statix is available
+    cmds:
+      - |
+        if ! command -v statix &> /dev/null; then
+          echo "⚠️ statix not found. Install it in your user environment using nix or load the nix dev shell with 'nix develop'."
+          exit 1
+        fi
+
+  statix:lint:check:
+    desc: Lint Nix code with statix
+    aliases:
+      - statix:lint
+      - statix
+      - nix:lint:statix
+    cmds:
+      - echo "🔍 Linting Nix code with statix..."
+      - statix check .

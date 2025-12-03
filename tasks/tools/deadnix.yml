@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for all deadnix tasks
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+tasks:
+  deadnix:lint:check:
+    desc: Find dead/unused Nix code with deadnix
+    aliases:
+      - deadnix:lint
+      - deadnix
+      - nix:lint:deadnix
+    cmds:
+      - echo "🔍 Finding dead nix code..."
+      - deadnix .

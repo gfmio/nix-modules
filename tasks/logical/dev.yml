@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for all dev tasks
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+tasks:
+  dev:
+    desc: Default development task
+    cmds:
+      - task: nix:dev

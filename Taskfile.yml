@@ -1,0 +1,82 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for nix-modules
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+vars:
+  PROJECT_NAME: nix-modules
+  NIX_SYSTEMS: x86_64-linux aarch64-linux x86_64-darwin aarch64-darwin
+
+includes:
+  logical:
+    taskfile: tasks/logical.yml
+    flatten: true
+  tools:
+    taskfile: tasks/tools.yml
+    flatten: true
+
+tasks:
+  # Default
+
+  default:
+    desc: Default task (Show available tasks)
+    cmds:
+      - task --list-all
+    silent: true
+
+  # test-all:
+  #   desc: Run all test types
+  #   deps: [test-formatting, test-statix, test-deadnix, test-eval, test-unit, test-integration]
+  #   cmds:
+  #     - |
+  #       if [ "$(uname)" = "Darwin" ]; then
+  #         task test-darwin-unit
+  #         task test-darwin-integration
+  #       fi
+  #     - echo "✅ All test types passed!"
+
+  # VM running tasks
+
+  # # Hardware testing guidance
+  # test-hardware-info:
+  #   desc: Show hardware testing information
+  #   cmds:
+  #     - echo "🔧 Hardware Testing Guide"
+  #     - echo ""
+  #     - echo "Before testing on real hardware - "
+  #     - echo "  1. Read tests/hardware/README.md for detailed procedures"
+  #     - echo "  2. Backup all important data"
+  #     - echo "  3. Have a recovery USB ready"
+  #     - echo "  4. Test in VM first if possible"
+  #     - echo ""
+  #     - echo "Hardware-specific test guides - "
+  #     - echo "  Intel GPU - tests/hardware/intel-gpu.md"
+  #     - echo "  NVIDIA GPU - tests/hardware/nvidia-gpu.md"
+  #     - echo "  Laptop - tests/hardware/laptop.md"
+  #     - echo ""
+  #     - echo "To create a test ISO - "
+  #     - echo "  nix build .#nixosConfigurations.test-hardware.config.system.build.isoImage"
+  #     - echo ""
+  #     - echo "Always test incrementally and document results!"
+  #   silent: true
+
+  # test-report:
+  #   desc: Show testing status report
+  #   cmds:
+  #     - echo "📊 Testing Status Report"
+  #     - echo ""
+  #     - echo "Available tests - "
+  #     - echo "  Formatting - task test-formatting"
+  #     - echo "  Linting - task test-statix, task test-deadnix"
+  #     - echo "  Module evaluation - task test-eval"
+  #     - echo "  Unit tests - task test-unit"
+  #     - echo "  Integration tests - task test-integration"
+  #     - echo "  VM tests - task test-vm"
+  #     - echo "  Performance tests - task test-perf"
+  #     - echo ""
+  #     - echo "Run all tests - task test-all"
+  #     - echo "Run CI checks - task ci"
+  #     - echo ""
+  #     - echo "For hardware testing - task test-hardware-info"
+  #   silent: true

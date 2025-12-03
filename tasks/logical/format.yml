@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# Taskfile for all formatting tasks
+# Learn more: https://taskfile.dev
+
+version: '3'
+
+tasks:
+  format:apply:
+    desc: Format all files
+    aliases:
+      - format
+      - fmt
+    sources:
+      - '**/*.nix'
+    cmds:
+      - task: nix:fmt
+
+  format:check:
+    desc: Check formatting of all files
+    aliases:
+      - fmt:check
+    sources:
+      - '**/*.nix'
+    cmds:
+      - task: nix:fmt:check

@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Check flake
+        # run: nix flake check --all-systems --show-trace
+        run: nix flake check --show-trace
+
+      # - name: statix
+      #   run: statix .
+
+      # - name: deadnix
+      #   run: deadnix .
+
+      # - name: Check formatting
+      #   run: nix fmt -- --check .
+
+      # NixOS
+
+      # - name: Build NixOS configuration
+      #   if: matrix.os == 'ubuntu-latest'
+      #   run: |
+      #     nix build .#nixosConfigurations.my-nixos-box.config.system.build.toplevel -L
+
+      # - name: Run NixOS unit tests
+      #   if: matrix.os == 'ubuntu-latest'
+      #   run: nix build .#checks.x86_64-linux.eval-test -L
+
+      # - name: Run NixOS integration tests
+      #   if: matrix.os == 'ubuntu-latest'
+      #   run: nix build .#checks.x86_64-linux.nixos-integration -L
+
+      # # MacOS
+
+      # - name: Build darwin configuration
+      #   if: matrix.os == 'macos-latest'
+      #   run: |
+      #     nix build .#darwinConfigurations.my-mac.config.system.build.toplevel -L
+
+      # - name: Run darwin unit tests
+      #   if: matrix.os == 'macos-latest'
+      #   run: nix build .#checks.aarch64-darwin.darwin-eval-test -L
+
+      # - name: Run darwin integration tests
+      #   if: matrix.os == 'macos-latest'
+      #   run: nix build .#checks.aarch64-darwin.darwin-integration -L
+
+  # Optional: VM testing with tart (requires self-hosted runner with tart installed)
+  # Uncomment when you have a self-hosted runner set up
+  # test-darwin-vm:
+  #   name: Darwin VM Integration Test
+  #   runs-on: [self-hosted, macOS, tart]
+  #   needs: check
+  #   if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+  #
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Install Nix
+  #       uses: DeterminateSystems/nix-installer-action@v9
+  #
+  #     - name: Setup Nix cache
+  #       uses: DeterminateSystems/magic-nix-cache-action@v2
+  #
+  #     - name: Run VM tests
+  #       run: |
+  #         ./tests/integration/darwin-vm-test.sh
+  #       env:
+  #         TART_VM_NAME: sonoma-base
+  #         TART_VM_USER: admin
