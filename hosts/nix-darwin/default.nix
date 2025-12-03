@@ -1,4 +1,4 @@
-{ }:
+{}:
 
 {
   # Shared nix-darwin configuration

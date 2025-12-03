@@ -1,4 +1,4 @@
-{ }:
+{}:
 
 {
   # NixOS-specific library functions
