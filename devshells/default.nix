@@ -9,7 +9,6 @@ _:
         # Nix tools
         nix
         nixpkgs-fmt
-        alejandra
         statix
         deadnix
 
