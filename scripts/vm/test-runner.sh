@@ -13,6 +13,11 @@ VM_USER="${VM_USER:-admin}"
 VM_PASSWORD="${VM_PASSWORD:-admin}"
 VM_SSH_PORT="${VM_SSH_PORT:-22}"
 SSH_TIMEOUT="${SSH_TIMEOUT:-30}"
+# NOTE: SSH host key verification is disabled because:
+# - VMs are local-only (tart runs VMs on localhost, no network MITM path)
+# - VMs are ephemeral with dynamic IPs (created and destroyed per test run)
+# - VM IPs are obtained directly from tart, not over an untrusted network
+# - This is standard practice for CI/CD ephemeral VM testing
 SSH_OPTIONS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=5"
 USE_BRIDGED="${USE_BRIDGED:-false}"
 BRIDGED_NIC="${BRIDGED_NIC:-en0}"

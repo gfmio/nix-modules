@@ -44,6 +44,11 @@ echo "🧪 Running tests on VM..."
 
 # Copy the flake to the VM
 echo "📤 Copying flake to VM..."
+# NOTE: SSH host key verification is disabled because:
+# - The VM is local-only (tart runs VMs on localhost, no network MITM path)
+# - The VM is ephemeral (created, tested, and destroyed in this script)
+# - The VM IP is obtained directly from tart, not over an untrusted network
+# - This is standard practice for CI/CD ephemeral VM testing
 scp -r -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
     "$(pwd)" "${VM_USER}@${VM_IP}:~/nix-modules"
 
