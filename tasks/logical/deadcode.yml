@@ -2,7 +2,7 @@
 # Taskfile for all dead code elimination tasks
 # Learn more: https://taskfile.dev
 
-version: '3'
+version: "3"
 
 tasks:
   deadcode:check:
@@ -11,11 +11,10 @@ tasks:
       - deadcode
     cmds:
       - task: deadnix:lint:check
-   
+
   deadcode:fix:
     desc: Auto-fix/remove all dead/unused code
     aliases:
       - deadcode:fix
     cmds:
       - echo "No autofixing deadcode elimination available."
-
