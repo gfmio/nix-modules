@@ -8,18 +8,18 @@
     nixpkgs-darwin.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
     # Feature libraries (use local paths for development)
-    nixos-features = {
-      # url = "github:gfmio/nixos-features";
-      url = "path:/Users/gfmio/projects/github/gfmio/nixos-features";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # nixos-features = {
+    #   # url = "github:gfmio/nixos-features";
+    #   url = "path:/Users/gfmio/projects/github/gfmio/nixos-features";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
 
     # nix-darwin-features (commented out until published)
-    nix-darwin-features = {
-      # url = "github:gfmio/nix-darwin-features";
-      url = "path:/Users/gfmio/projects/github/gfmio/nix-darwin-features";
-      inputs.nixpkgs.follows = "nixpkgs-darwin";
-    };
+    # nix-darwin-features = {
+    #   # url = "github:gfmio/nix-darwin-features";
+    #   url = "path:/Users/gfmio/projects/github/gfmio/nix-darwin-features";
+    #   inputs.nixpkgs.follows = "nixpkgs-darwin";
+    # };
 
     # Core infrastructure
     flake-parts.url = "github:hercules-ci/flake-parts";
